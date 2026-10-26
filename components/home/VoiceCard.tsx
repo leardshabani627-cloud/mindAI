@@ -21,12 +21,12 @@ export default function VoiceCard({ hasConversation }: { hasConversation: boolea
       <div className="relative flex items-start justify-between gap-4">
         <div>
           <h2 className="text-2xl font-medium tracking-tight">Talk to Mind</h2>
-          <p className="text-sm text-white/75">Say anything, in English or shqip.</p>
+          <p className="text-sm text-white/90">Say anything, in English or shqip.</p>
         </div>
         <button
           onClick={openListening}
           aria-label="Start speaking"
-          className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-white text-[var(--voice-to)] shadow-md transition hover:scale-105"
+          className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-white text-[var(--voice-from)] shadow-md transition hover:scale-105"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <rect x="9" y="3" width="6" height="12" rx="3" />
@@ -39,7 +39,7 @@ export default function VoiceCard({ hasConversation }: { hasConversation: boolea
         <Waveform levels={[]} active={false} />
       </Link>
 
-      <div className="relative mb-4 flex items-center justify-between text-sm text-white/80">
+      <div className="relative mb-4 flex items-center justify-between text-sm font-medium text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.2)]">
         <span>EN · SQ</span>
         <span className="tabular-nums">00:00</span>
       </div>

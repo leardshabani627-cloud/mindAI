@@ -226,7 +226,7 @@ export default function Chat() {
             </Link>
             <div className="min-w-0">
               <h1 className="text-2xl font-medium tracking-tight">Talk to Mind</h1>
-              <p className="truncate text-sm text-white/75">{status}</p>
+              <p className="truncate text-sm text-white/90">{status}</p>
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
@@ -246,7 +246,7 @@ export default function Chat() {
               }}
               disabled={voice.state === "transcribing"}
               aria-label={recording ? "Stop recording" : "Start speaking"}
-              className="grid h-12 w-12 place-items-center rounded-full bg-white text-[var(--voice-to)] shadow-md transition hover:scale-105 disabled:opacity-60"
+              className="grid h-12 w-12 place-items-center rounded-full bg-white text-[var(--voice-from)] shadow-md transition hover:scale-105 disabled:opacity-60"
             >
               {recording ? (
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
@@ -287,7 +287,7 @@ export default function Chat() {
                   "max-w-[85%] whitespace-pre-wrap rounded-3xl px-4 py-2.5 text-base leading-relaxed " +
                   (m.role === "user"
                     ? "rounded-br-lg bg-white text-[#1f2a22]"
-                    : "rounded-bl-lg border border-white/20 bg-white/15 backdrop-blur-md")
+                    : "rounded-bl-lg border border-white/15 bg-black/20 backdrop-blur-md")
                 }
               >
                 {m.content || <span className="animate-pulse text-white/70">…</span>}
@@ -300,7 +300,7 @@ export default function Chat() {
           <div className={voice.state === "transcribing" ? "animate-pulse" : ""}>
             <Waveform levels={voice.levels} active={recording} className={empty ? "h-20" : "h-10"} />
           </div>
-          <div className="mt-2 flex items-center justify-between text-sm text-white/80">
+          <div className="mt-2 flex items-center justify-between text-sm font-medium text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.2)]">
             <button
               onClick={voice.cancel}
               disabled={!recording}

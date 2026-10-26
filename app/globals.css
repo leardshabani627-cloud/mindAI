@@ -1,26 +1,26 @@
 @import "tailwindcss";
 
-/* Calm sage palette. Every color in the app comes from these tokens. */
+/* Fresh spring palette. Every color in the app comes from these tokens. */
 :root {
   color-scheme: light;
-  --bg: #e9efe6;
-  --fg: #1f2a22;
-  --muted: #74817a;
-  --card: rgba(255, 255, 255, 0.78);
+  --bg: #f2f8f0;
+  --fg: #1b2a1e;
+  --muted: #637468;
+  --card: rgba(255, 255, 255, 0.9);
   --card-solid: #ffffff;
-  --glass-border: rgba(255, 255, 255, 0.75);
-  --line: rgba(31, 42, 34, 0.08);
-  --accent: #5b7a57;
+  --glass-border: rgba(255, 255, 255, 0.95);
+  --line: rgba(27, 42, 30, 0.08);
+  --accent: #3d873d;
   --on-accent: #ffffff;
-  --accent-soft: #e2ebdd;
+  --accent-soft: #e2f3da;
 
-  --voice-from: #93ad8a;
-  --voice-to: #5d7b57;
+  /* The green voice / chat card: vivid at the top-left, lighter toward the bottom-right */
+  --voice-from: #4a8c41;
+  --voice-to: #73b25e;
 
-  --chip-a-bg: #e3eddd; --chip-a-fg: #3f5e3a;
-  --chip-b-bg: #eef2d3; --chip-b-fg: #5b6420;
-  --chip-c-bg: #e1edf2; --chip-c-fg: #2f5a6b;
-
+  --chip-a-bg: #dcf2d0; --chip-a-fg: #2c6627;
+  --chip-b-bg: #f1f6c6; --chip-b-fg: #5a6710;
+  --chip-c-bg: #d8eef8; --chip-c-fg: #1d5d78;
 }
 
 @media (prefers-color-scheme: dark) {
