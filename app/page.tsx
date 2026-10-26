@@ -74,7 +74,7 @@ export default function Home() {
           </div>
 
           <div className="lg:[grid-area:week]">
-            <WeekCard entries={entries} />
+            <WeekCard entries={entries} loaded={loaded} />
           </div>
 
           <div className="lg:[grid-area:mem]">

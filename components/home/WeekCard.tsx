@@ -2,10 +2,11 @@ import { localDate } from "@/lib/dates";
 import { thisWeek, type MoodEntry } from "@/components/home/week";
 
 // This week's days, with a check on every day you checked in.
-export default function WeekCard({ entries }: { entries: MoodEntry[] }) {
+export default function WeekCard({ entries, loaded }: { entries: MoodEntry[]; loaded: boolean }) {
   const today = localDate();
   const done = new Set(entries.map((e) => e.entry_date));
-  const days = thisWeek();
+  // "This week" depends on your clock, so the days are only filled in once the page runs in the browser.
+  const days = loaded ? thisWeek() : [];
   const count = days.filter((d) => done.has(d.date)).length;
 
   return (
@@ -24,7 +25,7 @@ export default function WeekCard({ entries }: { entries: MoodEntry[] }) {
         </span>
       </div>
 
-      <ol className="mt-auto grid grid-cols-7 gap-1 pt-4 text-center">
+      <ol className="mt-auto grid min-h-[4.25rem] grid-cols-7 gap-1 pt-4 text-center">
         {days.map((d) => {
           const isToday = d.date === today;
           const checked = done.has(d.date);

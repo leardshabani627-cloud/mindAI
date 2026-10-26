@@ -47,7 +47,8 @@ export default function InsightsPage() {
 
       <section className="rounded-2xl glass px-4 py-4">
         <p className="mb-2 text-[var(--muted)]">Mood, last 30 days</p>
-        <MoodChart entries={entries} />
+        {/* Dates depend on your clock and language, so the chart is drawn in the browser only */}
+        {loaded ? <MoodChart entries={entries} /> : <div className="aspect-[600/220] w-full" />}
         {loaded && (
           <p className="mt-2 text-base text-[var(--muted)]">
             {average ? `${entries.length} check-ins, average ${average}` : "No check-ins yet. Answer “How are you today?” in the chat."}
