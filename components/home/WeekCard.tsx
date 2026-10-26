@@ -14,7 +14,7 @@ export default function WeekCard({ entries, loaded }: { entries: MoodEntry[]; lo
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs text-[var(--muted)]">Check-ins</p>
-          <h2 className="text-lg font-medium tracking-tight">This week</h2>
+          <h2 className="text-lg font-normal tracking-tight">This week</h2>
         </div>
         <span className="flex items-center gap-1.5 rounded-full border border-[var(--line)] px-3 py-1 text-sm text-[var(--muted)]">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -33,13 +33,13 @@ export default function WeekCard({ entries, loaded }: { entries: MoodEntry[]; lo
             <li key={d.date} className="flex flex-col items-center gap-1.5">
               <span className="text-xs text-[var(--fg)]">{d.day}</span>
               {isToday ? (
-                <span className="grid h-9 w-9 place-items-center rounded-full bg-[var(--fg)] text-sm text-[var(--card-solid)]">
+                <span className="grid h-9 w-9 place-items-center rounded-full bg-[var(--accent-strong)] text-sm text-[var(--on-accent)]">
                   {checked ? "✓" : String(d.num).padStart(2, "0")}
                 </span>
               ) : checked ? (
                 <span
                   aria-label="Checked in"
-                  className="grid h-9 w-9 place-items-center rounded-full bg-[var(--accent-soft)] text-[var(--accent)]"
+                  className="grid h-9 w-9 place-items-center rounded-full bg-[var(--check)] text-white"
                 >
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="m5 12 5 5 9-10" />

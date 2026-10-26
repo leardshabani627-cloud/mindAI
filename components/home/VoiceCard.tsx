@@ -6,7 +6,7 @@ import Waveform from "@/components/Waveform";
 import { setStartVoice } from "@/lib/pending";
 
 // The way in. Tap the mic to open the chat already listening, or tap the box to open it ready to type.
-export default function VoiceCard({ hasConversation }: { hasConversation: boolean }) {
+export default function VoiceCard({ hasConversation, monthCount }: { hasConversation: boolean; monthCount: number }) {
   const router = useRouter();
 
   function openListening() {
@@ -20,7 +20,7 @@ export default function VoiceCard({ hasConversation }: { hasConversation: boolea
 
       <div className="relative flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-medium tracking-tight">Talk to Mind</h2>
+          <h2 className="text-2xl font-normal tracking-tight">Talk to Mind</h2>
           <p className="text-sm text-white/90">Say anything, in English or shqip.</p>
         </div>
         <button
@@ -49,13 +49,22 @@ export default function VoiceCard({ hasConversation }: { hasConversation: boolea
         className="relative block rounded-3xl bg-[var(--card-solid)] p-4 text-[var(--fg)] shadow-lg transition group-hover:shadow-xl"
       >
         <span className="block min-h-[3rem] text-base text-[var(--muted)]">
-          How are you feeling today? Type here or dictate
+          {hasConversation ? "Continue our conversation…" : "How are you feeling today? Type here or dictate"}
         </span>
         <span className="mt-2 flex items-center justify-between">
-          <span className="text-sm text-[var(--accent)]">
-            {hasConversation ? "Continue our conversation →" : "Private, only for you"}
+          <span className="flex items-center gap-4 text-sm">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden>
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            <span className="flex items-center gap-1.5" title="Memories saved this month">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden className="text-[var(--muted)]">
+                <path d="M6 3h11a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" />
+              </svg>
+              <span className="font-medium">{monthCount}</span>
+              <span className="text-[var(--muted)]">/Month</span>
+            </span>
           </span>
-          <span className="grid h-10 w-10 place-items-center rounded-full bg-[var(--accent)] text-[var(--on-accent)]">
+          <span className="grid h-10 w-10 place-items-center rounded-full bg-[var(--accent-soft)] text-white transition group-hover:bg-[var(--accent)]">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z" />
             </svg>

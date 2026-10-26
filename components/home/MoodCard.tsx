@@ -65,7 +65,7 @@ export default function MoodCard({ entries, loaded, onSaved }: {
     <section className="glass flex h-full flex-col rounded-[2rem] p-5 sm:p-6">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-xl font-medium tracking-tight">Mood Tracker</h2>
+          <h2 className="text-xl font-normal tracking-tight">Mood Tracker</h2>
           <p className="text-sm text-[var(--muted)]">{showCheckIn ? "How are you today? / Si je sot?" : "Your week at a glance"}</p>
         </div>
         <Link
@@ -118,7 +118,7 @@ export default function MoodCard({ entries, loaded, onSaved }: {
         </div>
       ) : (
         <div className="mt-4 flex flex-1 flex-col justify-end">
-          <p className="text-4xl font-medium tracking-tight 2xl:text-5xl">{pct === null ? "–" : `${pct}%`}</p>
+          <p className="text-4xl font-normal tracking-tight 2xl:text-5xl">{pct === null ? "–" : `${pct}%`}</p>
           <p className="text-sm text-[var(--muted)]">
             {avg === null ? "No check-ins this week yet." : weekLine(avg)}
           </p>
@@ -131,7 +131,9 @@ export default function MoodCard({ entries, loaded, onSaved }: {
                   background:
                     i === segment
                       ? "var(--accent)"
-                      : `color-mix(in oklab, var(--accent) ${8 + i * 7}%, var(--accent-soft))`,
+                      : Math.abs(i - segment) === 1
+                        ? "color-mix(in oklab, var(--accent) 35%, var(--accent-soft))"
+                        : "var(--accent-soft)",
                 }}
               />
             ))}

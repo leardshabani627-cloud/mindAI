@@ -14,6 +14,6 @@ export async function POST(req: Request) {
   if (typeof sessionId !== "string" || !UUID.test(sessionId)) {
     return new Response("Invalid request.", { status: 400 });
   }
-  await summarizeSession(supabase, user.id, sessionId);
-  return new Response(null, { status: 204 });
+  const result = await summarizeSession(supabase, user.id, sessionId);
+  return Response.json({ result }, { status: result === "failed" ? 502 : 200 });
 }

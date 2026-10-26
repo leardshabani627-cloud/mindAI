@@ -6,11 +6,11 @@
 const PHOTO = process.env.NEXT_PUBLIC_BACKGROUND_IMAGE;
 
 const HILLS = [
-  { d: "M0 530 C 160 490 330 486 520 518 C 700 550 860 532 1040 502 C 1220 472 1420 490 1600 510 V1000 H0 Z", top: "#e4f4c6", bottom: "#9fd06e" },
-  { d: "M0 622 C 180 572 380 562 560 598 C 760 638 900 662 1080 612 C 1260 562 1440 572 1600 592 V1000 H0 Z", top: "#d7efae", bottom: "#86c158" },
-  { d: "M0 730 C 220 662 420 652 640 692 C 860 732 1000 762 1200 712 C 1380 668 1500 672 1600 686 V1000 H0 Z", top: "#c9e89a", bottom: "#70b047" },
-  { d: "M0 826 C 260 776 500 766 760 816 C 980 860 1180 856 1380 806 C 1480 782 1560 782 1600 788 V1000 H0 Z", top: "#bae086", bottom: "#5ea13c" },
-  { d: "M0 930 C 300 880 600 870 900 914 C 1150 950 1400 940 1600 910 V1000 H0 Z", top: "#abd676", bottom: "#4e9131" },
+  { d: "M0 530 C 160 490 330 486 520 518 C 700 550 860 532 1040 502 C 1220 472 1420 490 1600 510 V1000 H0 Z", top: "#cbdab7", bottom: "#8ea878" },
+  { d: "M0 622 C 180 572 380 562 560 598 C 760 638 900 662 1080 612 C 1260 562 1440 572 1600 592 V1000 H0 Z", top: "#bccfa3", bottom: "#7a9a64" },
+  { d: "M0 730 C 220 662 420 652 640 692 C 860 732 1000 762 1200 712 C 1380 668 1500 672 1600 686 V1000 H0 Z", top: "#adc591", bottom: "#698d54" },
+  { d: "M0 826 C 260 776 500 766 760 816 C 980 860 1180 856 1380 806 C 1480 782 1560 782 1600 788 V1000 H0 Z", top: "#9fba80", bottom: "#5b8048" },
+  { d: "M0 930 C 300 880 600 870 900 914 C 1150 950 1400 940 1600 910 V1000 H0 Z", top: "#91af71", bottom: "#4e733e" },
 ];
 
 const crest = (d: string) => d.split(" V")[0];
@@ -21,17 +21,17 @@ export default function Scenery() {
       <svg className="h-full w-full" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMax slice">
         <defs>
           <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#f4f9fd" />
-            <stop offset="0.45" stopColor="#eef6fa" />
-            <stop offset="0.62" stopColor="#e9f4ec" />
+            <stop offset="0" stopColor="#f5f6f8" />
+            <stop offset="0.45" stopColor="#f0f2f4" />
+            <stop offset="0.62" stopColor="#e6ebe7" />
           </linearGradient>
           <linearGradient id="mountain" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#8fb2d4" />
-            <stop offset="1" stopColor="#d9e8f3" />
+            <stop offset="0" stopColor="#8fa6bc" />
+            <stop offset="1" stopColor="#d3dee6" />
           </linearGradient>
           <linearGradient id="mountainFar" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#b6cde2" />
-            <stop offset="1" stopColor="#e6f0f7" />
+            <stop offset="0" stopColor="#b8c8d6" />
+            <stop offset="1" stopColor="#e4eaee" />
           </linearGradient>
           {HILLS.map((h, i) => (
             <linearGradient key={i} id={`hill${i}`} x1="0" y1="0" x2="0" y2="1">

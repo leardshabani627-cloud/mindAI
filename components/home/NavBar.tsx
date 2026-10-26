@@ -17,7 +17,7 @@ export default function NavBar({ email }: { email: string }) {
   return (
     <nav className="flex items-center justify-between gap-3">
       <div className="flex items-center gap-2">
-        <Link href="/" className={`${pill} flex items-center gap-2 px-4 py-2 text-base font-medium tracking-tight`}>
+        <Link href="/" className={`${pill} flex items-center gap-2 px-4 py-2 text-base font-normal tracking-tight`}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-[var(--accent)]">
             <path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6 5.6 18.4" />
           </svg>

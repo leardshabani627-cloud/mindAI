@@ -66,9 +66,11 @@ function parseSummary(text: string): { summary: string; themes: string[] } {
   return { summary: text.trim(), themes: [] }; // model ignored the JSON format: keep the text anyway
 }
 
+export type SummaryResult = "saved" | "already-saved" | "too-short" | "failed";
+
 /** Summarize one session and save the result. Safe to call more than once. */
-export async function summarizeSession(supabase: SupabaseClient, userId: string, sessionId: string) {
-  if (!llmConfig()) return;
+export async function summarizeSession(supabase: SupabaseClient, userId: string, sessionId: string): Promise<SummaryResult> {
+  if (!llmConfig()) return "failed";
 
   try {
     const { data: existing } = await supabase
@@ -76,7 +78,7 @@ export async function summarizeSession(supabase: SupabaseClient, userId: string,
       .select("id")
       .eq("session_id", sessionId)
       .maybeSingle();
-    if (existing) return;
+    if (existing) return "already-saved";
 
     const { data: messages } = await supabase
       .from("messages")
@@ -85,18 +87,21 @@ export async function summarizeSession(supabase: SupabaseClient, userId: string,
       .order("created_at", { ascending: true })
       .limit(MAX_TRANSCRIPT_MESSAGES);
 
-    if (!messages || messages.filter((m) => m.role === "user").length < MIN_USER_MESSAGES) return;
+    if (!messages || messages.filter((m) => m.role === "user").length < MIN_USER_MESSAGES) return "too-short";
 
     const transcript = messages.map((m) => `${m.role === "user" ? "User" : "Mind"}: ${m.content}`).join("\n\n");
     const { summary, themes } = parseSummary(await complete(SUMMARY_PROMPT, transcript));
-    if (!summary) return;
+    if (!summary) return "failed";
 
     // ignoreDuplicates: if two triggers race, the second insert is simply dropped.
-    await supabase
+    const { error } = await supabase
       .from("session_summaries")
       .upsert({ user_id: userId, session_id: sessionId, summary, themes }, { onConflict: "session_id", ignoreDuplicates: true });
+    if (error) throw error;
+    return "saved";
   } catch (err) {
     console.error("summarizeSession failed:", err);
+    return "failed";
   }
 }
 

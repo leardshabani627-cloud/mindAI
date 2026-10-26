@@ -11,6 +11,8 @@ import { takeStartVoice } from "@/lib/pending";
 import type { Settings } from "@/lib/settings";
 import { formatSeconds, useVoiceInput } from "@/lib/useVoiceInput";
 import { speak, stopSpeaking } from "@/lib/voice";
+import Portrait from "@/components/Portrait";
+import { COMPANION_KEY, DEFAULT_COMPANION, getCompanion, type Companion } from "@/prompts/companions";
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -32,6 +34,14 @@ const store = {
   },
 };
 
+// Safety net: if the model slips into formatting (**bold**, # headings, - bullets), show it as plain conversation.
+const plainText = (text: string) =>
+  text
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/(^|\s)[*_](\S[^*_]*?)[*_](?=\s|$|[.,!?])/g, "$1$2")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/^\s*[-*•]\s+/gm, "");
+
 // Tell the server a session is over so it can write the memory summary.
 function endSession(sessionId: string) {
   fetch("/api/session/end", {
@@ -52,6 +62,7 @@ export default function Chat() {
   const [settings, setSettings] = useState<Settings | null>(null); // from the server, or the saved copy
   const [settingsFresh, setSettingsFresh] = useState(false); // true once the server has answered
   const [crisis, setCrisis] = useState(false);
+  const [companion, setCompanion] = useState<Companion>(DEFAULT_COMPANION); // chosen on the home screen
   const listRef = useRef<HTMLElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const sessionRef = useRef("");
@@ -81,6 +92,7 @@ export default function Chat() {
       store.set(KEYS.session, sessionRef.current);
     }
     setSpeakAloud(store.get(KEYS.speak) === "1");
+    setCompanion(getCompanion(store.get(COMPANION_KEY)));
     setLoaded(true);
     return () => {
       clearTimeout(idleTimer.current);
@@ -169,7 +181,7 @@ export default function Chat() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId: sessionRef.current, messages: history }),
+        body: JSON.stringify({ sessionId: sessionRef.current, messages: history, companion: companion.id }),
       });
       if (!res.ok || !res.body) throw new Error(await res.text());
 
@@ -201,7 +213,7 @@ export default function Chat() {
     : voice.state === "transcribing"
       ? "Writing it down… / Po e shkruaj…"
       : busy
-        ? "Mind is thinking…"
+        ? `${companion.name} is thinking…`
         : "Say anything, in English or shqip.";
   const note = voice.error || voiceNote;
   const empty = loaded && messages.length === 0;
@@ -224,8 +236,16 @@ export default function Chat() {
                 <path d="m15 6-6 6 6 6" />
               </svg>
             </Link>
+            <span
+              className="grid h-12 w-12 shrink-0 place-items-end overflow-hidden rounded-full ring-2 ring-white/60"
+              style={{ background: `linear-gradient(160deg, ${companion.look.bg[0]}, ${companion.look.bg[1]})` }}
+            >
+              <Portrait companion={companion} variant="round" />
+            </span>
             <div className="min-w-0">
-              <h1 className="text-2xl font-medium tracking-tight">Talk to Mind</h1>
+              <h1 className="text-2xl font-normal tracking-tight">
+                {companion.name} <span className="align-middle text-xs text-white/75">· AI companion</span>
+              </h1>
               <p className="truncate text-sm text-white/90">{status}</p>
             </div>
           </div>
@@ -276,7 +296,7 @@ export default function Chat() {
         <section ref={listRef} className="relative min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4 [scrollbar-width:thin] sm:px-7">
           {empty && (
             <div className="flex h-full flex-col items-center justify-center text-center">
-              <p className="text-xl font-medium tracking-tight">I&apos;m here. Say anything.</p>
+              <p className="text-xl font-normal tracking-tight">I&apos;m here. Say anything.</p>
               <p className="text-base text-white/70">Jam këtu. Shkruaj ose fol, çfarë të duash.</p>
             </div>
           )}
@@ -290,7 +310,9 @@ export default function Chat() {
                     : "rounded-bl-lg border border-white/15 bg-black/20 backdrop-blur-md")
                 }
               >
-                {m.content || <span className="animate-pulse text-white/70">…</span>}
+                {(m.role === "assistant" ? plainText(m.content) : m.content) || (
+                  <span className="animate-pulse text-white/70">…</span>
+                )}
               </p>
             </div>
           ))}

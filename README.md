@@ -13,6 +13,7 @@ Copy `.env.example` to `.env.local` for local use. On Vercel, add the same names
 | `LLM_API_KEY` | server only | Key for your AI provider. Free option: Google Gemini ([aistudio.google.com/apikey](https://aistudio.google.com/apikey)). |
 | `LLM_BASE_URL` | server only | Any OpenAI-compatible endpoint. Default: `https://generativelanguage.googleapis.com/v1beta/openai`. |
 | `LLM_MODEL` | server only | Model name, e.g. `gemini-2.5-flash` or `llama-3.3-70b-versatile` (Groq). |
+| `LLM_REASONING_EFFORT` | server only | Optional. For reasoning models like Groq's `openai/gpt-oss-120b`, `low` keeps replies quick and natural. Leave it out for providers that don't support it. |
 | `NEXT_PUBLIC_SUPABASE_URL` | browser + server | Supabase project URL, e.g. `https://abcd.supabase.co` (no `/rest/v1/`). |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | browser + server | Supabase **anon / publishable** key. Public by design; Row Level Security protects the data. |
 

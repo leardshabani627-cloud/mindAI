@@ -5,12 +5,13 @@ import Disclaimer from "@/components/Disclaimer";
 import MemoriesCard from "@/components/home/MemoriesCard";
 import MoodCard from "@/components/home/MoodCard";
 import NavBar from "@/components/home/NavBar";
-import PeopleCard from "@/components/home/PeopleCard";
+import CompanionCard from "@/components/home/CompanionCard";
 import VoiceCard from "@/components/home/VoiceCard";
 import WeekCard from "@/components/home/WeekCard";
 import type { MoodEntry } from "@/components/home/week";
 import type { Settings } from "@/lib/settings";
 import { browserClient } from "@/lib/supabase/browser";
+import { COMPANION_KEY, DEFAULT_COMPANION, getCompanion, type Companion } from "@/prompts/companions";
 
 type Summary = { id: string; summary: string; themes: string[]; created_at: string };
 
@@ -22,6 +23,9 @@ export default function Home() {
   const [loaded, setLoaded] = useState(false);
   const [hasConversation, setHasConversation] = useState(false);
   const [email, setEmail] = useState("");
+  const [companion, setCompanion] = useState<Companion>(DEFAULT_COMPANION);
+  const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState("");
 
   useEffect(() => {
     const get = (url: string) => fetch(url).then((r) => (r.ok ? r.json() : null)).catch(() => null);
@@ -35,9 +39,48 @@ export default function Home() {
       .auth.getUser()
       .then(({ data }) => setEmail(data.user?.email ?? ""));
     try {
+      setCompanion(getCompanion(localStorage.getItem(COMPANION_KEY)));
       setHasConversation(JSON.parse(localStorage.getItem("mind-chat") ?? "[]").length > 0);
     } catch {}
   }, []);
+
+  // End the open conversation now and turn it into a memory (same as "End & start new" in the chat).
+  async function saveConversation() {
+    const sessionId = localStorage.getItem("mind-session");
+    if (!sessionId) return;
+    setSaving(true);
+    setSaveStatus("");
+    const res = await fetch("/api/session/end", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId }),
+    }).catch(() => null);
+    const result = res ? (await res.json().catch(() => ({}))).result : "failed";
+    setSaving(false);
+
+    if (result === "too-short") {
+      return setSaveStatus("That conversation is still too short to remember. Talk a little more first.");
+    }
+    if (result !== "saved" && result !== "already-saved") {
+      return setSaveStatus("Couldn't save it right now. Please try again in a minute.");
+    }
+    // Start a fresh conversation next time, like "End & start new".
+    try {
+      localStorage.setItem("mind-session", crypto.randomUUID());
+      localStorage.setItem("mind-chat", "[]");
+    } catch {}
+    setHasConversation(false);
+    setSaveStatus("Saved. Mind will remember this conversation.");
+    const memory = await fetch("/api/memory").then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    if (memory) setSummaries(memory.summaries);
+  }
+
+  function chooseCompanion(c: Companion) {
+    setCompanion(c);
+    try {
+      localStorage.setItem(COMPANION_KEY, c.id);
+    } catch {}
+  }
 
   async function acceptDisclaimer() {
     setSettings((s) => s && { ...s, disclaimer_accepted_at: new Date().toISOString() });
@@ -57,7 +100,7 @@ export default function Home() {
         <div className="mt-6 grid flex-1 gap-5 lg:grid-cols-[1.12fr_1fr_1fr] lg:grid-rows-[auto_auto_1fr] lg:gap-6 lg:[grid-template-areas:'greet_mood_people'_'voice_week_people'_'voice_mem_mem']">
           <div className="flex flex-col justify-end pb-2 lg:[grid-area:greet]">
             <div className="animate-float mb-4 h-14 w-14 rounded-full bg-[radial-gradient(circle_at_30%_30%,#ffffff,#c4e6d6_40%,#9fc4e8_80%)] shadow-[0_18px_40px_-12px_rgba(90,140,150,0.6)] 2xl:h-20 2xl:w-20" />
-            <h1 className="text-[clamp(2.25rem,3vw,4rem)] leading-[1.1] font-medium tracking-tight">
+            <h1 className="text-[clamp(2.25rem,3vw,4rem)] leading-[1.1] font-normal tracking-tight">
               Don&apos;t worry <span aria-hidden>👋</span>
               <br />
               <span className="text-[var(--muted)]">Mind is listening…</span>
@@ -66,7 +109,10 @@ export default function Home() {
           </div>
 
           <div className="lg:[grid-area:voice]">
-            <VoiceCard hasConversation={hasConversation} />
+            <VoiceCard
+              hasConversation={hasConversation}
+              monthCount={summaries.filter((s) => s.created_at.slice(0, 7) === new Date().toISOString().slice(0, 7)).length}
+            />
           </div>
 
           <div className="lg:[grid-area:mood]">
@@ -78,14 +124,21 @@ export default function Home() {
           </div>
 
           <div className="lg:[grid-area:mem]">
-            <MemoriesCard summaries={summaries} loaded={loaded} />
+            <MemoriesCard
+              summaries={summaries}
+              loaded={loaded}
+              hasConversation={hasConversation}
+              saving={saving}
+              status={saveStatus}
+              onSaveNow={saveConversation}
+            />
           </div>
 
           <div className="lg:[grid-area:people]">
-            <PeopleCard
-              contacts={settings?.emergency_contacts ?? []}
-              resources={settings?.crisis_resources ?? []}
-              loaded={loaded}
+            <CompanionCard
+              companion={companion}
+              onChange={chooseCompanion}
+              contacts={[...(settings?.emergency_contacts ?? []), ...(settings?.crisis_resources ?? [])]}
             />
           </div>
         </div>

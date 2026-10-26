@@ -2,7 +2,8 @@ import { chatRequest, llmConfig } from "@/lib/llm";
 import { listSummaries, saveMessage, summarizeStaleSessions } from "@/lib/memory";
 import { getSettings } from "@/lib/settings";
 import { serverClient, unauthorized } from "@/lib/supabase/server";
-import { COMPANION_PROMPT, withContacts, withMemory } from "@/prompts/companion";
+import { COMPANION_PROMPT, withCompanion, withContacts, withMemory } from "@/prompts/companion";
+import { getCompanion } from "@/prompts/companions";
 
 export const maxDuration = 60;
 
@@ -39,7 +40,7 @@ export async function POST(req: Request) {
     });
   }
 
-  const { sessionId, messages } = await req.json().catch(() => ({}));
+  const { sessionId, messages, companion } = await req.json().catch(() => ({}));
   if (typeof sessionId !== "string" || !UUID.test(sessionId) || !isValid(messages)) {
     return new Response("Invalid request.", { status: 400 });
   }
@@ -51,7 +52,7 @@ export async function POST(req: Request) {
   if (messages.length === 1) await summarizeStaleSessions(supabase, user.id, sessionId);
 
   const [summaries, settings] = await Promise.all([listSummaries(supabase, SUMMARIES_IN_PROMPT), getSettings(supabase)]);
-  const system = withContacts(withMemory(COMPANION_PROMPT, summaries), settings);
+  const system = withContacts(withMemory(withCompanion(COMPANION_PROMPT, getCompanion(companion)), summaries), settings);
 
   const upstream = await chatRequest(
     [{ role: "system", content: system }, ...messages.slice(-MAX_MESSAGES)],
@@ -67,6 +68,12 @@ export async function POST(req: Request) {
   }
   if (!upstream.ok || !upstream.body) {
     console.error("Provider error", upstream.status, await upstream.text());
+    // Free plans allow only so many words per minute.
+    if (upstream.status === 429) {
+      return new Response("I need a short pause. Send that again in a few seconds. / Më duhet një pushim i shkurtër, provo prapë pas pak sekondash.", {
+        status: 429,
+      });
+    }
     return new Response("The model could not answer right now.", { status: 502 });
   }
 
