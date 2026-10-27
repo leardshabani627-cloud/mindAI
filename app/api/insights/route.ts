@@ -1,6 +1,7 @@
 import { complete, llmConfig } from "@/lib/llm";
 import { listSummaries } from "@/lib/memory";
 import { listMood } from "@/lib/mood";
+import { moodTag } from "@/lib/moodTags";
 import { serverClient, unauthorized } from "@/lib/supabase/server";
 import { INSIGHTS_PROMPT } from "@/prompts/insights";
 
@@ -20,7 +21,10 @@ export async function POST() {
   }
 
   const moodLines = mood.map(
-    (m) => `- ${m.entry_date} (${weekday(m.entry_date)}): ${m.mood}/10${m.note ? ` - "${m.note}"` : ""}`,
+    (m) =>
+      `- ${m.entry_date} (${weekday(m.entry_date)}): ${m.mood}/10` +
+      (m.tags?.length ? ` [affected by: ${m.tags.map((t) => moodTag(t)?.en ?? t).join(", ")}]` : "") +
+      (m.note ? ` - "${m.note}"` : ""),
   );
   const summaryLines = [...summaries].reverse().map(
     (s) => `- (${s.created_at.slice(0, 10)}) ${s.summary}${s.themes.length ? ` [themes: ${s.themes.join(", ")}]` : ""}`,

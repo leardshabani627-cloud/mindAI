@@ -1,6 +1,6 @@
 import { localDate } from "@/lib/dates";
 
-type Entry = { entry_date: string; mood: number; note: string };
+type Entry = { entry_date: string; mood: number; note: string; tags?: string[] };
 
 const DAYS = 30;
 const W = 600;

@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 // Server only. Uses the signed-in user's client, so RLS limits it to their own entries.
 
-export type MoodEntry = { entry_date: string; mood: number; note: string };
+export type MoodEntry = { entry_date: string; mood: number; note: string; tags: string[] };
 
 export const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -11,7 +11,7 @@ export async function listMood(supabase: SupabaseClient, days: number): Promise<
   const since = new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
   const { data, error } = await supabase
     .from("mood_entries")
-    .select("entry_date, mood, note")
+    .select("entry_date, mood, note, tags")
     .gte("entry_date", since)
     .order("entry_date", { ascending: true });
   if (error) console.error("listMood failed:", error.message);

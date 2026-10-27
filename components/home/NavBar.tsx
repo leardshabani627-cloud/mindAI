@@ -4,6 +4,8 @@ import TopMenu from "@/components/TopMenu";
 const TABS = [
   { href: "/", label: "Home" },
   { href: "/chat", label: "Chat" },
+  { href: "/journal", label: "Journal" },
+  { href: "/calm", label: "Calm" },
   { href: "/insights", label: "Insights" },
   { href: "/memory", label: "Memory" },
 ];

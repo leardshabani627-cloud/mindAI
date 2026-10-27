@@ -1,3 +1,4 @@
+import { cleanPlan } from "@/lib/safetyPlan";
 import { cleanContacts, getSettings, saveSettings, type Settings } from "@/lib/settings";
 import { serverClient, unauthorized } from "@/lib/supabase/server";
 
@@ -7,7 +8,7 @@ export async function GET() {
   return Response.json(await getSettings(supabase));
 }
 
-// Body can contain any of: emergency_contacts, crisis_resources, acceptDisclaimer.
+// Body can contain any of: emergency_contacts, crisis_resources, safety_plan, acceptDisclaimer.
 export async function PUT(req: Request) {
   const { supabase, user } = await serverClient();
   if (!user) return unauthorized();
@@ -20,6 +21,11 @@ export async function PUT(req: Request) {
     const list = cleanContacts(body[key]);
     if (!list) return new Response("Invalid request.", { status: 400 });
     changes[key] = list;
+  }
+  if (body.safety_plan !== undefined) {
+    const plan = cleanPlan(body.safety_plan);
+    if (!plan) return new Response("Invalid request.", { status: 400 });
+    changes.safety_plan = plan;
   }
   if (body.acceptDisclaimer === true) changes.disclaimer_accepted_at = new Date().toISOString();
 

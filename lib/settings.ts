@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { SafetyPlan } from "@/lib/safetyPlan";
 
 // Server only. Emergency contacts and crisis resources are entered by the user in Settings.
 // Nothing is hardcoded: every name and number comes from them.
@@ -9,16 +10,22 @@ export type Settings = {
   emergency_contacts: Contact[];
   crisis_resources: Contact[];
   disclaimer_accepted_at: string | null;
+  safety_plan: SafetyPlan;
 };
 
 const MAX_ITEMS = 10;
 
-export const emptySettings: Settings = { emergency_contacts: [], crisis_resources: [], disclaimer_accepted_at: null };
+export const emptySettings: Settings = {
+  emergency_contacts: [],
+  crisis_resources: [],
+  disclaimer_accepted_at: null,
+  safety_plan: {},
+};
 
 export async function getSettings(supabase: SupabaseClient): Promise<Settings> {
   const { data, error } = await supabase
     .from("user_settings")
-    .select("emergency_contacts, crisis_resources, disclaimer_accepted_at")
+    .select("emergency_contacts, crisis_resources, disclaimer_accepted_at, safety_plan")
     .maybeSingle();
   if (error) console.error("getSettings failed:", error.message);
   return data ?? emptySettings;

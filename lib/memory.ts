@@ -45,7 +45,7 @@ export async function deleteSummary(supabase: SupabaseClient, id: string): Promi
 /** Erase everything this user has stored. */
 export async function deleteAllData(supabase: SupabaseClient, userId: string): Promise<boolean> {
   let ok = true;
-  for (const table of ["messages", "session_summaries", "mood_entries", "user_settings"]) {
+  for (const table of ["messages", "session_summaries", "mood_entries", "journal_entries", "user_settings"]) {
     const { error } = await supabase.from(table).delete().eq("user_id", userId);
     if (error) {
       ok = false;

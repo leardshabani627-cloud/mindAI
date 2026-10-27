@@ -1,16 +1,13 @@
 import Link from "next/link";
+import { telHref } from "@/lib/phone";
+import type { SafetyPlan } from "@/lib/safetyPlan";
 import type { Contact } from "@/lib/settings";
 
 type Props = {
   contacts: Contact[];
   resources: Contact[];
+  plan?: SafetyPlan;
   onClose: () => void;
-};
-
-// A phone number or text we can turn into a tap-to-call link; anything else stays plain text.
-const telHref = (detail: string) => {
-  const digits = detail.replace(/[^\d+]/g, "");
-  return digits.replace(/\D/g, "").length >= 3 && /^[\d\s()+.-]+$/.test(detail) ? `tel:${digits}` : null;
 };
 
 function List({ title, items }: { title: string; items: Contact[] }) {
@@ -42,7 +39,9 @@ function List({ title, items }: { title: string; items: Contact[] }) {
 
 // Shown (softly) when a message looks like self-harm or hopelessness.
 // Every contact and resource here was entered by the user in Settings.
-export default function CrisisBanner({ contacts, resources, onClose }: Props) {
+export default function CrisisBanner({ contacts, resources, plan, onClose }: Props) {
+  const reasons = plan?.reasons ?? [];
+  const coping = (plan?.coping ?? []).slice(0, 2);
   const empty = contacts.length === 0 && resources.length === 0;
 
   return (
@@ -57,8 +56,34 @@ export default function CrisisBanner({ contacts, resources, onClose }: Props) {
         </button>
       </div>
 
+      {reasons.length > 0 && (
+        <div className="mt-3">
+          <p className="text-sm text-[var(--muted)]">Your reasons to keep going</p>
+          <p>{reasons.join(" · ")}</p>
+        </div>
+      )}
+      {coping.length > 0 && (
+        <div className="mt-3">
+          <p className="text-sm text-[var(--muted)]">Things that help you</p>
+          <p>{coping.join(" · ")}</p>
+        </div>
+      )}
+
       <List title="People I trust" items={contacts} />
       <List title="Crisis resources" items={resources} />
+
+      <Link
+        href="/calm"
+        className="mt-3 inline-flex items-center gap-2 rounded-full bg-[var(--accent-soft)] px-4 py-1.5 text-sm text-[var(--accent)]"
+      >
+        Breathe with me for 2 minutes →
+      </Link>{" "}
+      <Link
+        href="/safety-plan"
+        className="mt-3 inline-flex items-center gap-2 rounded-full bg-[var(--accent-soft)] px-4 py-1.5 text-sm text-[var(--accent)]"
+      >
+        Open my safety plan →
+      </Link>
 
       {empty ? (
         <p className="mt-3">

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import Disclaimer from "@/components/Disclaimer";
 import MemoriesCard from "@/components/home/MemoriesCard";
@@ -106,6 +107,17 @@ export default function Home() {
               <span className="text-[var(--muted)]">Mind is listening…</span>
             </h1>
             <p className="mt-3 text-base text-[var(--muted)]">Mos u shqetëso, Mind po të dëgjon.</p>
+            <Link
+              href="/calm"
+              className="glass mt-5 flex w-fit items-center gap-2 rounded-full px-4 py-2 text-sm transition hover:-translate-y-0.5"
+            >
+              <span className="grid h-6 w-6 place-items-center rounded-full bg-[var(--accent-soft)] text-[var(--accent)]">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M3 8h11a3 3 0 1 0-3-3M3 12h15a3 3 0 1 1-3 3M3 16h7" />
+                </svg>
+              </span>
+              Need a moment? Breathe with me · 2 min
+            </Link>
           </div>
 
           <div className="lg:[grid-area:voice]">

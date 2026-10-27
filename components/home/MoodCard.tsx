@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { localDate } from "@/lib/dates";
 import { thisWeek, type MoodEntry } from "@/components/home/week";
+import { MAX_MOOD_TAGS, MOOD_TAGS, moodTag } from "@/lib/moodTags";
 
 const SKIP_KEY = "mind-mood-skipped";
 
@@ -23,6 +24,7 @@ export default function MoodCard({ entries, loaded, onSaved }: {
   const [skipped, setSkipped] = useState(true);
   const [mood, setMood] = useState(5);
   const [note, setNote] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -33,7 +35,8 @@ export default function MoodCard({ entries, loaded, onSaved }: {
     }
   }, []);
 
-  const doneToday = entries.some((e) => e.entry_date === today);
+  const todayEntry = entries.find((e) => e.entry_date === today);
+  const doneToday = !!todayEntry;
   const showCheckIn = loaded && !doneToday && !skipped;
 
   const week = new Set(thisWeek().map((d) => d.date));
@@ -44,14 +47,18 @@ export default function MoodCard({ entries, loaded, onSaved }: {
 
   async function save() {
     setSaving(true);
-    const entry = { entry_date: today, mood, note: note.trim() };
+    const entry = { entry_date: today, mood, note: note.trim(), tags };
     const res = await fetch("/api/mood", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ date: entry.entry_date, mood: entry.mood, note: entry.note }),
+      body: JSON.stringify({ date: entry.entry_date, mood: entry.mood, note: entry.note, tags }),
     }).catch(() => null);
     setSaving(false);
     if (res?.ok) onSaved(entry);
+  }
+
+  function toggleTag(id: string) {
+    setTags((t) => (t.includes(id) ? t.filter((x) => x !== id) : t.length < MAX_MOOD_TAGS ? [...t, id] : t));
   }
 
   function skip() {
@@ -96,6 +103,25 @@ export default function MoodCard({ entries, loaded, onSaved }: {
             <span className="text-sm text-[var(--muted)]">Good</span>
             <span className="w-6 text-right text-lg tabular-nums">{mood}</span>
           </div>
+          <p className="mt-3 text-sm text-[var(--muted)]">What's affecting you today? / Çka po të ndikon sot?</p>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {MOOD_TAGS.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => toggleTag(t.id)}
+                aria-pressed={tags.includes(t.id)}
+                title={t.sq}
+                className={
+                  "rounded-full border px-2.5 py-1 text-sm transition " +
+                  (tags.includes(t.id)
+                    ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--on-accent)]"
+                    : "border-[var(--line)] hover:bg-[var(--accent-soft)]")
+                }
+              >
+                <span aria-hidden>{t.icon}</span> {t.en}
+              </button>
+            ))}
+          </div>
           <input
             value={note}
             onChange={(e) => setNote(e.target.value)}
@@ -122,6 +148,16 @@ export default function MoodCard({ entries, loaded, onSaved }: {
           <p className="text-sm text-[var(--muted)]">
             {avg === null ? "No check-ins this week yet." : weekLine(avg)}
           </p>
+          {!!todayEntry?.tags?.length && (
+            <p className="mt-1 text-sm text-[var(--muted)]">
+              Today:{" "}
+              {todayEntry.tags
+                .map((id) => moodTag(id))
+                .filter(Boolean)
+                .map((t) => `${t!.icon} ${t!.en}`)
+                .join(" · ")}
+            </p>
+          )}
           <div className="mt-4 flex h-9 gap-px overflow-hidden rounded-xl">
             {Array.from({ length: 7 }, (_, i) => (
               <span

@@ -25,35 +25,7 @@
   --chip-c-bg: #e2ecf3; --chip-c-fg: #58788f;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --bg: #0f1512;
-    --fg: #e4ebe2;
-    --muted: #8c9a90;
-    --card: rgba(23, 31, 26, 0.8);
-    --card-solid: #18201b;
-    --glass-border: rgba(255, 255, 255, 0.07);
-    --line: rgba(255, 255, 255, 0.08);
-    --accent: #a7c49e;
-    --on-accent: #10180f;
-    --accent-soft: #233022;
-    --accent-strong: #c4dcbb;
-    --check: #34473a;
-
-    --voice-from: #46623f;
-    --voice-to: #263b25;
-
-    --chip-a-bg: #26372a; --chip-a-fg: #b7d3ad;
-    --chip-b-bg: #343a1f; --chip-b-fg: #d7dc9c;
-    --chip-c-bg: #1f3139; --chip-c-fg: #a9cfdc;
-  }
-}
-
-/* Dark mode: the same landscape at dusk */
-@media (prefers-color-scheme: dark) {
-  .scenery { filter: brightness(0.3) saturate(0.75); }
-}
+/* Mind is always light and bright, even when the computer or phone is set to dark mode. */
 
 body {
   background: var(--bg);

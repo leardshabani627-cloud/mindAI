@@ -1,6 +1,6 @@
 import { localDate } from "@/lib/dates";
 
-export type MoodEntry = { entry_date: string; mood: number; note: string };
+export type MoodEntry = { entry_date: string; mood: number; note: string; tags: string[] };
 
 /** Monday to Sunday of the current week, as local dates. */
 export function thisWeek() {

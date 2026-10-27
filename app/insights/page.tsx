@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import MoodChart from "@/components/MoodChart";
+import MoodFactors from "@/components/MoodFactors";
 
-type Entry = { entry_date: string; mood: number; note: string };
+type Entry = { entry_date: string; mood: number; note: string; tags: string[] };
 
 export default function InsightsPage() {
   const [entries, setEntries] = useState<Entry[]>([]);
@@ -51,10 +52,12 @@ export default function InsightsPage() {
         {loaded ? <MoodChart entries={entries} /> : <div className="aspect-[600/220] w-full" />}
         {loaded && (
           <p className="mt-2 text-base text-[var(--muted)]">
-            {average ? `${entries.length} check-ins, average ${average}` : "No check-ins yet. Answer “How are you today?” in the chat."}
+            {average ? `${entries.length} check-ins, average ${average}` : "No check-ins yet. Answer “How are you today?” on the home screen."}
           </p>
         )}
       </section>
+
+      {loaded && entries.length > 0 && <MoodFactors entries={entries} />}
 
       <button
         onClick={reflect}

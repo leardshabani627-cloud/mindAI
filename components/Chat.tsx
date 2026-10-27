@@ -288,6 +288,7 @@ export default function Chat() {
             <CrisisBanner
               contacts={settings?.emergency_contacts ?? []}
               resources={settings?.crisis_resources ?? []}
+              plan={settings?.safety_plan}
               onClose={() => setCrisis(false)}
             />
           </div>

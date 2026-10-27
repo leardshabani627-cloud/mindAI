@@ -2,7 +2,7 @@ import { chatRequest, llmConfig } from "@/lib/llm";
 import { listSummaries, saveMessage, summarizeStaleSessions } from "@/lib/memory";
 import { getSettings } from "@/lib/settings";
 import { serverClient, unauthorized } from "@/lib/supabase/server";
-import { COMPANION_PROMPT, withCompanion, withContacts, withMemory } from "@/prompts/companion";
+import { COMPANION_PROMPT, withCompanion, withContacts, withMemory, withSafetyPlan } from "@/prompts/companion";
 import { getCompanion } from "@/prompts/companions";
 
 export const maxDuration = 60;
@@ -52,7 +52,10 @@ export async function POST(req: Request) {
   if (messages.length === 1) await summarizeStaleSessions(supabase, user.id, sessionId);
 
   const [summaries, settings] = await Promise.all([listSummaries(supabase, SUMMARIES_IN_PROMPT), getSettings(supabase)]);
-  const system = withContacts(withMemory(withCompanion(COMPANION_PROMPT, getCompanion(companion)), summaries), settings);
+  const system = withSafetyPlan(
+    withContacts(withMemory(withCompanion(COMPANION_PROMPT, getCompanion(companion)), summaries), settings),
+    settings.safety_plan,
+  );
 
   const upstream = await chatRequest(
     [{ role: "system", content: system }, ...messages.slice(-MAX_MESSAGES)],

@@ -2,12 +2,10 @@
 
 import Link from "next/link";
 import Portrait from "@/components/Portrait";
+import { telHref } from "@/lib/phone";
 import { COMPANIONS, type Companion } from "@/prompts/companions";
 
 type Contact = { name: string; detail: string };
-
-const telHref = (detail: string) =>
-  /^[\d\s()+.-]+$/.test(detail) && detail.replace(/\D/g, "").length >= 3 ? `tel:${detail.replace(/[^\d+]/g, "")}` : null;
 
 // Choose who you talk with: four AI companions, each with their own way of talking.
 // Below, the people you trust stay one tap away.
@@ -83,7 +81,9 @@ export default function CompanionCard({ companion, onChange, contacts }: {
         </div>
 
         <div className="mt-2 flex items-center justify-between gap-2 px-1 text-sm">
-          <span className="text-[var(--muted)]">In a hard moment</span>
+          <Link href="/safety-plan" className="text-[var(--muted)] hover:text-[var(--fg)]">
+            My safety plan →
+          </Link>
           {first ? (
             call ? (
               <a href={call} className="truncate text-[var(--accent)] hover:underline">
