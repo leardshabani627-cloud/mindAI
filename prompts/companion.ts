@@ -114,11 +114,17 @@ export function withContacts(
   return `${prompt}\n\nMy own contacts (use these in a moment of danger; they are my choice, not yours to change):\n${lists.join("\n\n")}`;
 }
 
+/** Adds what I like to be called. */
+export function withName(prompt: string, name: string | null | undefined) {
+  if (!name) return prompt;
+  return `${prompt}\n\nMy name is ${name}. Use it now and then, naturally, the way a friend would (not in every message).`;
+}
+
 /** Adds the safety plan I wrote myself (see lib/safetyPlan.ts), so you can remind me of my own steps. */
 export function withSafetyPlan(prompt: string, plan: SafetyPlan | undefined) {
   if (planIsEmpty(plan)) return prompt;
   const parts = PLAN_SECTIONS.filter(({ key }) => plan?.[key]?.length).map(
-    ({ key, en }) => `${en}:\n${plan![key]!.map((item) => `- ${item}`).join("\n")}`,
+    ({ key, en }) => `${en.title}:\n${plan![key]!.map((item) => `- ${item}`).join("\n")}`,
   );
   return `${prompt}\n\nMy own safety plan, written by me on a calmer day. Only bring it up if I seem to be struggling or in danger. Then: first check I'm safe right now; once you know,
 gently bring in ONE thing from my plan, in my own words (a reason that matters to me, or one thing I said helps,

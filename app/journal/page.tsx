@@ -3,7 +3,66 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import TopMenu from "@/components/TopMenu";
-import { JOURNAL_TAGS, tagInfo, type JournalTag } from "@/lib/journalTags";
+import { locale, useCopy, useLang, type Lang } from "@/lib/i18n";
+import { JOURNAL_TAGS, tagInfo, tagLabel, type JournalTag } from "@/lib/journalTags";
+
+const en = {
+  title: "My journal",
+  subtitle: "Private writing, just for you. Never sent to the AI.",
+  backHome: "Back to home",
+  editing: "Editing a saved entry",
+  useAsTitle: "Use as title",
+  another: "Another ↻",
+  titlePlaceholder: "Title (optional)",
+  bodyPlaceholder: "Write whatever comes. Nobody else will read this.",
+  saving: "Saving…",
+  saveChanges: "Save changes",
+  saveEntry: "Save entry",
+  newEntry: "New entry",
+  delete: "Delete",
+  words: "words",
+  past: "Past entries",
+  count: (n: number) => `${n} ${n === 1 ? "entry" : "entries"}`,
+  all: "All",
+  emptyAll: "Your entries will appear here. Start with one honest sentence.",
+  emptyTag: "No entries with this label yet.",
+  leave: "You have unsaved changes to this entry. Leave without saving?",
+  confirmDelete: "Delete this entry? This can't be undone.",
+  saveFailed: "Couldn't save. Please try again.",
+  saved: "Saved.",
+  deleteFailed: "Couldn't delete. Please try again.",
+  deleted: "Deleted.",
+};
+const COPY = {
+  en,
+  sq: {
+    title: "Ditari im",
+    subtitle: "Shkrim privat, vetëm për ty. Nuk i dërgohet kurrë AI-së.",
+    backHome: "Kthehu në ballinë",
+    editing: "Po ndryshon një shënim të ruajtur",
+    useAsTitle: "Përdore si titull",
+    another: "Tjetër ↻",
+    titlePlaceholder: "Titulli (opsional)",
+    bodyPlaceholder: "Shkruaj çka të vjen. Askush tjetër s'do ta lexojë.",
+    saving: "Po ruhet…",
+    saveChanges: "Ruaj ndryshimet",
+    saveEntry: "Ruaje shënimin",
+    newEntry: "Shënim i ri",
+    delete: "Fshije",
+    words: "fjalë",
+    past: "Shënimet e mëparshme",
+    count: (n: number) => `${n} ${n === 1 ? "shënim" : "shënime"}`,
+    all: "Të gjitha",
+    emptyAll: "Shënimet e tua do të shfaqen këtu. Fillo me një fjali të sinqertë.",
+    emptyTag: "Ende asnjë shënim me këtë etiketë.",
+    leave: "Ke ndryshime të paruajtura në këtë shënim. Të largohesh pa i ruajtur?",
+    confirmDelete: "Ta fshijmë këtë shënim? Kjo nuk kthehet më.",
+    saveFailed: "Nuk u ruajt. Provo përsëri.",
+    saved: "U ruajt.",
+    deleteFailed: "Nuk u fshi. Provo përsëri.",
+    deleted: "U fshi.",
+  } satisfies typeof en,
+};
 
 type Entry = { id: string; title: string; body: string; tag: JournalTag; created_at: string; updated_at: string };
 type Draft = { id: string | null; title: string; body: string; tag: JournalTag };
@@ -11,11 +70,13 @@ type Draft = { id: string | null; title: string; body: string; tag: JournalTag }
 const EMPTY: Draft = { id: null, title: "", body: "", tag: "reflection" };
 const DRAFT_KEY = "mind-journal-draft"; // an unsaved new entry survives closing the page (this device only)
 
-const fmt = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+const fmt = (iso: string, lang: Lang) =>
+  new Date(iso).toLocaleDateString(locale(lang), { weekday: "short", month: "short", day: "numeric", year: "numeric" });
 
 // My journal: private writing. Entries are never sent to the AI.
 export default function JournalPage() {
+  const w = useCopy(COPY);
+  const { lang } = useLang();
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [draft, setDraft] = useState<Draft>(EMPTY);
@@ -51,7 +112,7 @@ export default function JournalPage() {
   }, [draft]);
 
   function confirmLeave() {
-    return !dirty || !draft.id || confirm("You have unsaved changes to this entry. Leave without saving?");
+    return !dirty || !draft.id || confirm(w.leave);
   }
 
   function open(entry: Entry) {
@@ -79,27 +140,27 @@ export default function JournalPage() {
       body: JSON.stringify({ title: draft.title, body: draft.body, tag: draft.tag }),
     }).catch(() => null);
     setBusy(false);
-    if (!res?.ok) return setStatus("Couldn't save. Please try again.");
+    if (!res?.ok) return setStatus(w.saveFailed);
 
     const entry: Entry = await res.json();
     setEntries((prev) => (draft.id ? prev.map((e) => (e.id === entry.id ? entry : e)) : [entry, ...prev]));
     const d = { id: entry.id, title: entry.title, body: entry.body, tag: entry.tag };
     setDraft(d);
     setSaved(d);
-    setStatus("Saved.");
+    setStatus(w.saved);
     try {
       localStorage.removeItem(DRAFT_KEY);
     } catch {}
   }
 
   async function remove() {
-    if (!draft.id || !confirm("Delete this entry? This can't be undone.")) return;
+    if (!draft.id || !confirm(w.confirmDelete)) return;
     const res = await fetch(`/api/journal/${draft.id}`, { method: "DELETE" }).catch(() => null);
-    if (!res?.ok) return setStatus("Couldn't delete. Please try again.");
+    if (!res?.ok) return setStatus(w.deleteFailed);
     setEntries((prev) => prev.filter((e) => e.id !== draft.id));
     setDraft(EMPTY);
     setSaved(EMPTY);
-    setStatus("Deleted.");
+    setStatus(w.deleted);
   }
 
   const shown = filter === "all" ? entries : entries.filter((e) => e.tag === filter);
@@ -112,7 +173,7 @@ export default function JournalPage() {
           <div className="flex items-start gap-2">
             <Link
               href="/"
-              aria-label="Back to home"
+              aria-label={w.backHome}
               className="-ml-1 mt-1 grid h-8 w-8 place-items-center rounded-full text-[var(--muted)] hover:bg-[var(--accent-soft)]"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -120,8 +181,8 @@ export default function JournalPage() {
               </svg>
             </Link>
             <div>
-              <h1 className="text-2xl tracking-tight">My journal</h1>
-              <p className="text-sm text-[var(--muted)]">Ditari im. Private writing, just for you. Never sent to the AI.</p>
+              <h1 className="text-2xl tracking-tight">{w.title}</h1>
+              <p className="text-sm text-[var(--muted)]">{w.subtitle}</p>
             </div>
           </div>
           <TopMenu current="/journal" />
@@ -142,26 +203,25 @@ export default function JournalPage() {
                   style={draft.tag === t.id ? t.chip : { color: "var(--muted)" }}
                   aria-pressed={draft.tag === t.id}
                 >
-                  {t.label}
+                  {tagLabel(t, lang)}
                 </button>
               ))}
               <span className="ml-auto text-sm text-[var(--muted)]">
-                {draft.id ? "Editing a saved entry" : fmt(new Date().toISOString())}
+                {draft.id ? w.editing : loaded ? fmt(new Date().toISOString(), lang) : ""}
               </span>
             </div>
 
             {prompt && (
               <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-[var(--accent-soft)]/70 px-4 py-3">
                 <span>
-                  <span className="block">{prompt.en}</span>
-                  <span className="block text-sm text-[var(--muted)]">{prompt.sq}</span>
+                  <span className="block">{prompt[lang]}</span>
                 </span>
                 <span className="flex gap-2 text-sm">
-                  <button onClick={() => setDraft({ ...draft, title: prompt.en })} className="text-[var(--accent)] hover:underline">
-                    Use as title
+                  <button onClick={() => setDraft({ ...draft, title: prompt[lang] })} className="text-[var(--accent)] hover:underline">
+                    {w.useAsTitle}
                   </button>
                   <button onClick={() => setPromptIndex(promptIndex + 1)} className="text-[var(--muted)] hover:text-[var(--fg)]">
-                    Another ↻
+                    {w.another}
                   </button>
                 </span>
               </div>
@@ -171,14 +231,14 @@ export default function JournalPage() {
               value={draft.title}
               onChange={(e) => setDraft({ ...draft, title: e.target.value })}
               maxLength={120}
-              placeholder="Title (optional)"
+              placeholder={w.titlePlaceholder}
               className="mt-4 w-full bg-transparent text-2xl tracking-tight outline-none placeholder:text-[var(--muted)]/70"
             />
             <textarea
               value={draft.body}
               onChange={(e) => setDraft({ ...draft, body: e.target.value })}
               maxLength={10_000}
-              placeholder="Write whatever comes. Nobody else will read this. / Shkruaj çka të vjen."
+              placeholder={w.bodyPlaceholder}
               className="mt-2 min-h-[18rem] w-full flex-1 resize-none bg-transparent text-base leading-relaxed outline-none placeholder:text-[var(--muted)]"
             />
 
@@ -188,20 +248,20 @@ export default function JournalPage() {
                 disabled={busy || (!draft.title.trim() && !draft.body.trim()) || (!!draft.id && !dirty)}
                 className="rounded-full bg-[var(--accent)] px-5 py-2 text-base text-[var(--on-accent)] disabled:opacity-40"
               >
-                {busy ? "Saving…" : draft.id ? "Save changes" : "Save entry"}
+                {busy ? w.saving : draft.id ? w.saveChanges : w.saveEntry}
               </button>
               {draft.id && (
                 <>
                   <button onClick={startNew} className="rounded-full border border-[var(--line)] px-4 py-2 text-base">
-                    New entry
+                    {w.newEntry}
                   </button>
                   <button onClick={remove} className="text-sm text-[var(--muted)] hover:text-red-600">
-                    Delete
+                    {w.delete}
                   </button>
                 </>
               )}
               <span className="text-sm text-[var(--muted)]">{status}</span>
-              <span className="ml-auto text-sm text-[var(--muted)] tabular-nums">{words} words</span>
+              <span className="ml-auto text-sm text-[var(--muted)] tabular-nums">{words} {w.words}</span>
             </div>
           </section>
 
@@ -209,15 +269,15 @@ export default function JournalPage() {
           <section className="glass flex flex-col rounded-[2rem] p-5 sm:p-6">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-xl tracking-tight">Past entries</h2>
+                <h2 className="text-xl tracking-tight">{w.past}</h2>
                 <p className="text-sm text-[var(--muted)]">
-                  {entries.length} {entries.length === 1 ? "entry" : "entries"}
+                  {w.count(entries.length)}
                 </p>
               </div>
             </div>
 
             <div className="mt-3 flex flex-wrap gap-1.5">
-              {[{ id: "all" as const, label: "All" }, ...JOURNAL_TAGS].map((t) => (
+              {[{ id: "all" as const, label: w.all }, ...JOURNAL_TAGS.map((tag) => ({ id: tag.id, label: tagLabel(tag, lang) }))].map((t) => (
                 <button
                   key={t.id}
                   onClick={() => setFilter(t.id)}
@@ -233,7 +293,7 @@ export default function JournalPage() {
 
             {loaded && shown.length === 0 && (
               <p className="mt-6 text-base text-[var(--muted)]">
-                {entries.length === 0 ? "Your entries will appear here. Start with one honest sentence." : "No entries with this label yet."}
+                {entries.length === 0 ? w.emptyAll : w.emptyTag}
               </p>
             )}
 
@@ -249,9 +309,9 @@ export default function JournalPage() {
                   >
                     <span className="flex items-center gap-2">
                       <span className="rounded-full px-2.5 py-0.5 text-xs" style={tagInfo(e.tag).chip}>
-                        {tagInfo(e.tag).label}
+                        {tagLabel(tagInfo(e.tag), lang)}
                       </span>
-                      <span className="ml-auto text-xs text-[var(--muted)]">{fmt(e.created_at)}</span>
+                      <span className="ml-auto text-xs text-[var(--muted)]">{fmt(e.created_at, lang)}</span>
                     </span>
                     <span className="mt-1 block truncate text-base">{e.title || e.body.split("\n")[0]}</span>
                     {e.title && e.body && (

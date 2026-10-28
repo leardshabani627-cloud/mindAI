@@ -3,11 +3,37 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Waveform from "@/components/Waveform";
+import { useCopy } from "@/lib/i18n";
 import { setStartVoice } from "@/lib/pending";
+
+const en = {
+  title: "Talk to Mind",
+  subtitle: "Say anything, in English or shqip.",
+  startSpeaking: "Start speaking",
+  open: "Open the conversation",
+  continue: "Continue our conversation…",
+  placeholder: "How are you feeling today? Type here or dictate",
+  monthTitle: "Memories saved this month",
+  perMonth: "/Month",
+};
+const COPY = {
+  en,
+  sq: {
+    title: "Fol me Mind",
+    subtitle: "Thuaj çfarëdo, shqip ose anglisht.",
+    startSpeaking: "Fillo të flasësh",
+    open: "Hap bisedën",
+    continue: "Vazhdo bisedën tonë…",
+    placeholder: "Si po ndihesh sot? Shkruaj ose fol këtu",
+    monthTitle: "Kujtime të ruajtura këtë muaj",
+    perMonth: "/Muaj",
+  } satisfies typeof en,
+};
 
 // The way in. Tap the mic to open the chat already listening, or tap the box to open it ready to type.
 export default function VoiceCard({ hasConversation, monthCount }: { hasConversation: boolean; monthCount: number }) {
   const router = useRouter();
+  const t = useCopy(COPY);
 
   function openListening() {
     setStartVoice();
@@ -20,12 +46,12 @@ export default function VoiceCard({ hasConversation, monthCount }: { hasConversa
 
       <div className="relative flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-normal tracking-tight">Talk to Mind</h2>
-          <p className="text-sm text-white/90">Say anything, in English or shqip.</p>
+          <h2 className="text-2xl font-normal tracking-tight">{t.title}</h2>
+          <p className="text-sm text-white/90">{t.subtitle}</p>
         </div>
         <button
           onClick={openListening}
-          aria-label="Start speaking"
+          aria-label={t.startSpeaking}
           className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-white text-[var(--voice-from)] shadow-md transition hover:scale-105"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -35,7 +61,7 @@ export default function VoiceCard({ hasConversation, monthCount }: { hasConversa
         </button>
       </div>
 
-      <Link href="/chat" aria-label="Open the conversation" className="relative my-4 flex-1 content-center">
+      <Link href="/chat" aria-label={t.open} className="relative my-4 flex-1 content-center">
         <Waveform levels={[]} active={false} />
       </Link>
 
@@ -49,19 +75,19 @@ export default function VoiceCard({ hasConversation, monthCount }: { hasConversa
         className="relative block rounded-3xl bg-[var(--card-solid)] p-4 text-[var(--fg)] shadow-lg transition group-hover:shadow-xl"
       >
         <span className="block min-h-[3rem] text-base text-[var(--muted)]">
-          {hasConversation ? "Continue our conversation…" : "How are you feeling today? Type here or dictate"}
+          {hasConversation ? t.continue : t.placeholder}
         </span>
         <span className="mt-2 flex items-center justify-between">
           <span className="flex items-center gap-4 text-sm">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden>
               <path d="M12 5v14M5 12h14" />
             </svg>
-            <span className="flex items-center gap-1.5" title="Memories saved this month">
+            <span className="flex items-center gap-1.5" title={t.monthTitle}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden className="text-[var(--muted)]">
                 <path d="M6 3h11a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" />
               </svg>
               <span className="font-medium">{monthCount}</span>
-              <span className="text-[var(--muted)]">/Month</span>
+              <span className="text-[var(--muted)]">{t.perMonth}</span>
             </span>
           </span>
           <span className="grid h-10 w-10 place-items-center rounded-full bg-[var(--accent-soft)] text-white transition group-hover:bg-[var(--accent)]">

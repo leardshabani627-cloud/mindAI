@@ -7,12 +7,62 @@ import TopMenu from "@/components/TopMenu";
 import { telHref } from "@/lib/phone";
 import { PLAN_SECTIONS, planIsEmpty, type PlanKey, type SafetyPlan } from "@/lib/safetyPlan";
 import type { Contact, Settings } from "@/lib/settings";
+import { useCopy, useLang } from "@/lib/i18n";
+
+const en = {
+  eg: "e.g.",
+  remove: "Remove",
+  add: "+ Add",
+  backHome: "Back to home",
+  title: "My safety plan",
+  subtitle: "Written on a calmer day, for a harder one.",
+  askForHelp: "People I can ask for help",
+  askHint: "Friends or family I can call or text when it gets hard.",
+  professionals: "Professionals and crisis lines",
+  professionalsHint: "My doctor or therapist, and crisis lines for where I live. Look up the right ones for my country.",
+  emergency: "If I'm in danger, I call my local emergency number.",
+  breathe: "Breathe for 2 minutes",
+  talk: "Talk to my companion",
+  edit: "Edit",
+  print: "Print",
+  intro: "Fill in what you can, in your own words. A few honest lines are enough, and you can change it any time. It's private: only you can see it.",
+  save: "Save my plan",
+  cancel: "Cancel",
+  saving: "Saving…",
+  saveFailed: "Couldn't save. Please try again.",
+};
+const COPY = {
+  en,
+  sq: {
+    eg: "p.sh.",
+    remove: "Hiqe",
+    add: "+ Shto",
+    backHome: "Kthehu në ballinë",
+    title: "Plani im i sigurisë",
+    subtitle: "I shkruar në një ditë më të qetë, për një ditë më të vështirë.",
+    askForHelp: "Njerëzit të cilëve mund t'u kërkoj ndihmë",
+    askHint: "Miq ose familjarë që mund t'i telefonoj ose t'u shkruaj kur bëhet e vështirë.",
+    professionals: "Profesionistë dhe linja krize",
+    professionalsHint: "Mjeku ose terapisti im, dhe linjat e krizës ku jetoj. Kërko ato që vlejnë për vendin tim.",
+    emergency: "Nëse jam në rrezik, telefonoj numrin lokal të urgjencës.",
+    breathe: "Merr frymë për 2 minuta",
+    talk: "Fol me shoqëruesin tim",
+    edit: "Ndrysho",
+    print: "Printo",
+    intro: "Plotëso sa të mundesh, me fjalët e tua. Disa rreshta të sinqertë mjaftojnë, dhe mund ta ndryshosh kurdo. Është privat: vetëm ti e sheh.",
+    save: "Ruaje planin",
+    cancel: "Anulo",
+    saving: "Po ruhet…",
+    saveFailed: "Nuk u ruajt. Provo përsëri.",
+  } satisfies typeof en,
+};
 
 // Steps are numbered in the order they're used in a hard moment; the two contact lists are steps 4 and 5.
 const STEP: Record<PlanKey, number> = { warning_signs: 1, coping: 2, distractions: 3, safe_steps: 6, reasons: 0 };
 
 /** Editable list of short lines for one plan section. */
 function LineList({ items, onChange, example }: { items: string[]; onChange: (v: string[]) => void; example: string }) {
+  const t = useCopy(COPY);
   const list = items.length ? items : [""];
   return (
     <div className="space-y-2">
@@ -22,13 +72,13 @@ function LineList({ items, onChange, example }: { items: string[]; onChange: (v:
             value={line}
             maxLength={200}
             onChange={(e) => onChange(list.map((l, j) => (j === i ? e.target.value : l)))}
-            placeholder={i === 0 ? `e.g. ${example}` : ""}
+            placeholder={i === 0 ? `${t.eg} ${example}` : ""}
             className={fieldClass}
           />
           {list.length > 1 && (
             <button
               onClick={() => onChange(list.filter((_, j) => j !== i))}
-              aria-label="Remove"
+              aria-label={t.remove}
               className="px-2 text-[var(--muted)] hover:text-[var(--fg)]"
             >
               ✕
@@ -38,7 +88,7 @@ function LineList({ items, onChange, example }: { items: string[]; onChange: (v:
       ))}
       {list.length < 10 && (
         <button onClick={() => onChange([...list, ""])} className="text-base text-[var(--accent)]">
-          + Add
+          {t.add}
         </button>
       )}
     </div>
@@ -78,6 +128,8 @@ function ContactLines({ items }: { items: Contact[] }) {
 
 // My safety plan: written on a calmer day, read in a hard one.
 export default function SafetyPlanPage() {
+  const t = useCopy(COPY);
+  const { lang } = useLang();
   const [plan, setPlan] = useState<SafetyPlan>({});
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [resources, setResources] = useState<Contact[]>([]);
@@ -106,13 +158,13 @@ export default function SafetyPlanPage() {
   }, []);
 
   async function save() {
-    setStatus("Saving…");
+    setStatus(t.saving);
     const res = await fetch("/api/settings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ safety_plan: plan, emergency_contacts: contacts, crisis_resources: resources }),
     }).catch(() => null);
-    if (!res?.ok) return setStatus("Couldn't save. Please try again.");
+    if (!res?.ok) return setStatus(t.saveFailed);
     setStatus("");
     try {
       localStorage.removeItem("mind-settings"); // the chat re-reads the saved version
@@ -138,7 +190,7 @@ export default function SafetyPlanPage() {
       <section key={s.key} className="flex gap-3">
         <StepBadge n={STEP[s.key]} />
         <div className="min-w-0">
-          <h2 className="text-lg tracking-tight">{s.en}</h2>
+          <h2 className="text-lg tracking-tight">{s[lang].title}</h2>
           <ul className="mt-1 list-disc space-y-1 pl-5">
             {plan[s.key]!.map((item, i) => (
               <li key={i}>{item}</li>
@@ -155,7 +207,7 @@ export default function SafetyPlanPage() {
           <div className="flex items-start gap-2">
             <Link
               href="/"
-              aria-label="Back to home"
+              aria-label={t.backHome}
               className="-ml-1 mt-1 grid h-8 w-8 place-items-center rounded-full text-[var(--muted)] hover:bg-[var(--accent-soft)] print:hidden"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -163,8 +215,8 @@ export default function SafetyPlanPage() {
               </svg>
             </Link>
             <div>
-              <h1 className="text-2xl tracking-tight">My safety plan</h1>
-              <p className="text-sm text-[var(--muted)]">Plani im i sigurisë. Written on a calmer day, for a harder one.</p>
+              <h1 className="text-2xl tracking-tight">{t.title}</h1>
+              <p className="text-sm text-[var(--muted)]">{t.subtitle}</p>
             </div>
           </div>
           <div className="print:hidden">
@@ -182,7 +234,7 @@ export default function SafetyPlanPage() {
               <section className="flex gap-3">
                 <StepBadge n={4} />
                 <div>
-                  <h2 className="text-lg tracking-tight">People I can ask for help</h2>
+                  <h2 className="text-lg tracking-tight">{t.askForHelp}</h2>
                   <ContactLines items={contacts} />
                 </div>
               </section>
@@ -190,11 +242,11 @@ export default function SafetyPlanPage() {
             <section className="flex gap-3">
               <StepBadge n={5} />
               <div>
-                <h2 className="text-lg tracking-tight">Professionals and crisis lines</h2>
+                <h2 className="text-lg tracking-tight">{t.professionals}</h2>
                 {resources.length > 0 ? (
                   <ContactLines items={resources} />
                 ) : (
-                  <p className="text-[var(--muted)]">If I&apos;m in danger, I call my local emergency number.</p>
+                  <p className="text-[var(--muted)]">{t.emergency}</p>
                 )}
               </div>
             </section>
@@ -202,16 +254,16 @@ export default function SafetyPlanPage() {
 
             <div className="flex flex-wrap gap-2 pt-2 print:hidden">
               <Link href="/calm" className="rounded-full bg-[var(--accent)] px-5 py-2 text-base text-[var(--on-accent)]">
-                Breathe for 2 minutes
+                {t.breathe}
               </Link>
               <Link href="/chat" className="rounded-full border border-[var(--line)] px-5 py-2 text-base">
-                Talk to my companion
+                {t.talk}
               </Link>
               <button onClick={() => setEditing(true)} className="rounded-full border border-[var(--line)] px-5 py-2 text-base">
-                Edit
+                {t.edit}
               </button>
               <button onClick={() => window.print()} className="rounded-full border border-[var(--line)] px-5 py-2 text-base">
-                Print
+                {t.print}
               </button>
             </div>
           </div>
@@ -220,30 +272,29 @@ export default function SafetyPlanPage() {
         {loaded && editing && (
           <div className="mt-6">
             <p className="mb-6 text-base text-[var(--muted)]">
-              Fill in what you can, in your own words. A few honest lines are enough, and you can change it any time.
-              It&apos;s private: only you can see it.
+              {t.intro}
             </p>
 
             {sections.map((s) => (
               <section key={s.key} className="mb-6 rounded-2xl glass px-4 py-4">
                 <h2 className="mb-1 flex items-center gap-2">
                   <StepBadge n={STEP[s.key]} />
-                  {s.en} <span className="text-sm text-[var(--muted)]">· {s.sq}</span>
+                  {s[lang].title}
                 </h2>
-                <p className="mb-3 text-base text-[var(--muted)]">{s.hint}</p>
-                <LineList items={plan[s.key] ?? []} example={s.example} onChange={(v) => setPlan({ ...plan, [s.key]: v })} />
+                <p className="mb-3 text-base text-[var(--muted)]">{s[lang].hint}</p>
+                <LineList items={plan[s.key] ?? []} example={s[lang].example} onChange={(v) => setPlan({ ...plan, [s.key]: v })} />
               </section>
             ))}
 
             <ContactList
-              title={<span className="flex items-center gap-2"><StepBadge n={4} />People I can ask for help</span>}
-              hint="Friends or family I can call or text when it gets hard."
+              title={<span className="flex items-center gap-2"><StepBadge n={4} />{t.askForHelp}</span>}
+              hint={t.askHint}
               items={contacts}
               onChange={setContacts}
             />
             <ContactList
-              title={<span className="flex items-center gap-2"><StepBadge n={5} />Professionals and crisis lines</span>}
-              hint="My doctor or therapist, and crisis lines for where I live. Look up the right ones for my country."
+              title={<span className="flex items-center gap-2"><StepBadge n={5} />{t.professionals}</span>}
+              hint={t.professionalsHint}
               items={resources}
               onChange={setResources}
             />
@@ -251,19 +302,19 @@ export default function SafetyPlanPage() {
             <section className="mb-6 rounded-2xl glass px-4 py-4">
               <h2 className="mb-1 flex items-center gap-2">
                 <StepBadge n={6} />
-                {safeSteps.en} <span className="text-sm text-[var(--muted)]">· {safeSteps.sq}</span>
+                {safeSteps[lang].title}
               </h2>
-              <p className="mb-3 text-base text-[var(--muted)]">{safeSteps.hint}</p>
+              <p className="mb-3 text-base text-[var(--muted)]">{safeSteps[lang].hint}</p>
               <LineList
                 items={plan.safe_steps ?? []}
-                example={safeSteps.example}
+                example={safeSteps[lang].example}
                 onChange={(v) => setPlan({ ...plan, safe_steps: v })}
               />
             </section>
 
             <div className="flex items-center gap-4">
               <button onClick={save} className="rounded-2xl bg-[var(--accent)] px-5 py-3 text-[var(--on-accent)]">
-                Save my plan
+                {t.save}
               </button>
               {!planIsEmpty(saved.plan) && (
                 <button
@@ -275,7 +326,7 @@ export default function SafetyPlanPage() {
                   }}
                   className="text-[var(--muted)] hover:text-[var(--fg)]"
                 >
-                  Cancel
+                  {t.cancel}
                 </button>
               )}
               <span className="text-[var(--muted)]">{status}</span>

@@ -3,7 +3,34 @@
 import Link from "next/link";
 import Portrait from "@/components/Portrait";
 import { telHref } from "@/lib/phone";
-import { COMPANIONS, type Companion } from "@/prompts/companions";
+import { useCopy, useLang } from "@/lib/i18n";
+import { COMPANIONS, companionText, type Companion } from "@/prompts/companions";
+
+const en = {
+  title: "Your companion",
+  subtitle: "Choose who you talk with",
+  previous: "Previous companion",
+  next: "Next companion",
+  talkWith: (name: string) => `Talk with ${name}`,
+  ai: "AI companion",
+  safetyPlan: "My safety plan →",
+  call: (who: string) => `Call ${who}`,
+  addPeople: "Add people you trust →",
+};
+const COPY = {
+  en,
+  sq: {
+    title: "Shoqëruesi yt",
+    subtitle: "Zgjidh me kë të flasësh",
+    previous: "Shoqëruesi i mëparshëm",
+    next: "Shoqëruesi tjetër",
+    talkWith: (name: string) => `Fol me ${name}`,
+    ai: "Shoqërues AI",
+    safetyPlan: "Plani im i sigurisë →",
+    call: (who: string) => `Telefono ${who}`,
+    addPeople: "Shto njerëz që u beson →",
+  } satisfies typeof en,
+};
 
 type Contact = { name: string; detail: string };
 
@@ -14,6 +41,9 @@ export default function CompanionCard({ companion, onChange, contacts }: {
   onChange: (c: Companion) => void;
   contacts: Contact[];
 }) {
+  const t = useCopy(COPY);
+  const { lang } = useLang();
+  const text = companionText(companion, lang);
   const index = COMPANIONS.findIndex((c) => c.id === companion.id);
   const step = (by: number) => onChange(COMPANIONS[(index + by + COMPANIONS.length) % COMPANIONS.length]);
   const first = contacts[0];
@@ -25,8 +55,8 @@ export default function CompanionCard({ companion, onChange, contacts }: {
       style={{ backgroundImage: `linear-gradient(160deg, ${companion.look.bg[0]}cc, ${companion.look.bg[1]}cc)` }}
     >
       <div className="relative z-10 max-w-[45%]">
-        <h2 className="text-xl font-normal tracking-tight text-[#1d221e]">Your companion</h2>
-        <p className="text-sm text-[#5f675f]">Choose who you talk with</p>
+        <h2 className="text-xl font-normal tracking-tight text-[#1d221e]">{t.title}</h2>
+        <p className="text-sm text-[#5f675f]">{t.subtitle}</p>
       </div>
 
       <Portrait key={companion.id} companion={companion} variant="card" />
@@ -35,7 +65,7 @@ export default function CompanionCard({ companion, onChange, contacts }: {
         <div className="flex items-center gap-2">
           <button
             onClick={() => step(-1)}
-            aria-label="Previous companion"
+            aria-label={t.previous}
             className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[var(--line)] text-[var(--muted)] hover:text-[var(--fg)]"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -46,7 +76,7 @@ export default function CompanionCard({ companion, onChange, contacts }: {
             href="/chat"
             className="flex h-11 flex-1 items-center justify-between rounded-full bg-[#1d221e] pr-1 pl-5 text-sm text-white"
           >
-            Talk with {companion.name}
+            {t.talkWith(companion.name)}
             <span className="grid h-9 w-9 place-items-center rounded-full bg-[var(--accent)] text-white">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="m5 12 5 5 9-10" />
@@ -55,7 +85,7 @@ export default function CompanionCard({ companion, onChange, contacts }: {
           </Link>
           <button
             onClick={() => step(1)}
-            aria-label="Next companion"
+            aria-label={t.next}
             className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[var(--line)] text-[var(--muted)] hover:text-[var(--fg)]"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -70,9 +100,9 @@ export default function CompanionCard({ companion, onChange, contacts }: {
             <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
               <circle cx="12" cy="12" r="10" />
             </svg>
-            {companion.title} · AI companion
+            {text.title} · {t.ai}
           </p>
-          <p className="mt-1 text-sm text-[var(--muted)]">{companion.about}</p>
+          <p className="mt-1 text-sm text-[var(--muted)]">{text.about}</p>
           <div className="mt-2 flex gap-1.5" aria-hidden>
             {COMPANIONS.map((c) => (
               <span key={c.id} className={"h-1.5 rounded-full transition-all " + (c.id === companion.id ? "w-5 bg-[var(--accent)]" : "w-1.5 bg-[var(--check)]")} />
@@ -82,12 +112,12 @@ export default function CompanionCard({ companion, onChange, contacts }: {
 
         <div className="mt-2 flex items-center justify-between gap-2 px-1 text-sm">
           <Link href="/safety-plan" className="text-[var(--muted)] hover:text-[var(--fg)]">
-            My safety plan →
+            {t.safetyPlan}
           </Link>
           {first ? (
             call ? (
               <a href={call} className="truncate text-[var(--accent)] hover:underline">
-                Call {first.name || first.detail}
+                {t.call(first.name || first.detail)}
               </a>
             ) : (
               <Link href="/settings" className="truncate text-[var(--accent)] hover:underline">
@@ -96,7 +126,7 @@ export default function CompanionCard({ companion, onChange, contacts }: {
             )
           ) : (
             <Link href="/settings" className="text-[var(--accent)] hover:underline">
-              Add people you trust →
+              {t.addPeople}
             </Link>
           )}
         </div>

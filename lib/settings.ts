@@ -11,6 +11,8 @@ export type Settings = {
   crisis_resources: Contact[];
   disclaimer_accepted_at: string | null;
   safety_plan: SafetyPlan;
+  display_name: string | null; // what Mind calls you
+  onboarded_at: string | null; // when the welcome steps were finished
 };
 
 const MAX_ITEMS = 10;
@@ -20,12 +22,14 @@ export const emptySettings: Settings = {
   crisis_resources: [],
   disclaimer_accepted_at: null,
   safety_plan: {},
+  display_name: null,
+  onboarded_at: null,
 };
 
 export async function getSettings(supabase: SupabaseClient): Promise<Settings> {
   const { data, error } = await supabase
     .from("user_settings")
-    .select("emergency_contacts, crisis_resources, disclaimer_accepted_at, safety_plan")
+    .select("emergency_contacts, crisis_resources, disclaimer_accepted_at, safety_plan, display_name, onboarded_at")
     .maybeSingle();
   if (error) console.error("getSettings failed:", error.message);
   return data ?? emptySettings;
@@ -51,4 +55,12 @@ export async function saveSettings(supabase: SupabaseClient, userId: string, cha
     .upsert({ user_id: userId, ...changes, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
   if (error) console.error("saveSettings failed:", error.message);
   return !error;
+}
+
+/** A name to be called by: trimmed, at most 40 characters, or null to clear it. Undefined if invalid. */
+export function cleanName(value: unknown): string | null | undefined {
+  if (value === null || value === "") return null;
+  if (typeof value !== "string") return undefined;
+  const name = value.trim().replace(/\s+/g, " ").slice(0, 40);
+  return name || null;
 }

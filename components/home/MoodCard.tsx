@@ -4,15 +4,54 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { localDate } from "@/lib/dates";
 import { thisWeek, type MoodEntry } from "@/components/home/week";
+import { useCopy, useLang } from "@/lib/i18n";
 import { MAX_MOOD_TAGS, MOOD_TAGS, moodTag } from "@/lib/moodTags";
 
 const SKIP_KEY = "mind-mood-skipped";
 
-function weekLine(avg: number) {
-  if (avg >= 7.5) return "You've felt lighter this week. What helped?";
-  if (avg >= 5) return "A mixed week, with some good moments.";
-  return "It's been a heavy week. Be gentle with yourself.";
-}
+const en = {
+  title: "Mood Tracker",
+  howAreYou: "How are you today?",
+  weekGlance: "Your week at a glance",
+  openInsights: "Open insights",
+  low: "Low",
+  good: "Good",
+  moodLabel: "Mood from 1 to 10",
+  affecting: "What's affecting you today?",
+  notePlaceholder: "One line, if you like…",
+  notNow: "Not now",
+  save: "Save",
+  noCheckIns: "No check-ins this week yet.",
+  lighter: "You've felt lighter this week. What helped?",
+  mixed: "A mixed week, with some good moments.",
+  heavy: "It's been a heavy week. Be gentle with yourself.",
+  today: "Today:",
+  unpleasant: "Unpleasant",
+  pleasant: "Pleasant",
+};
+const COPY = {
+  en,
+  sq: {
+    title: "Gjendja ime",
+    howAreYou: "Si je sot?",
+    weekGlance: "Java jote me një shikim",
+    openInsights: "Hap pasqyrën",
+    low: "Keq",
+    good: "Mirë",
+    moodLabel: "Gjendja nga 1 deri në 10",
+    affecting: "Çka po të ndikon sot?",
+    notePlaceholder: "Një rresht, nëse dëshiron…",
+    notNow: "Jo tani",
+    save: "Ruaje",
+    noCheckIns: "Asnjë kontroll këtë javë ende.",
+    lighter: "Këtë javë je ndier më lehtë. Çka të ndihmoi?",
+    mixed: "Një javë e përzier, me disa momente të mira.",
+    heavy: "Ka qenë një javë e rëndë. Bëhu i butë me veten.",
+    today: "Sot:",
+    unpleasant: "E pakëndshme",
+    pleasant: "E këndshme",
+  } satisfies typeof en,
+};
 
 // Today's check-in (until it's done or skipped), then a soft summary of the week.
 export default function MoodCard({ entries, loaded, onSaved }: {
@@ -20,7 +59,10 @@ export default function MoodCard({ entries, loaded, onSaved }: {
   loaded: boolean;
   onSaved: (entry: MoodEntry) => void;
 }) {
+  const t = useCopy(COPY);
+  const { lang } = useLang();
   const today = localDate();
+  const weekLine = (avg: number) => (avg >= 7.5 ? t.lighter : avg >= 5 ? t.mixed : t.heavy);
   const [skipped, setSkipped] = useState(true);
   const [mood, setMood] = useState(5);
   const [note, setNote] = useState("");
@@ -72,12 +114,12 @@ export default function MoodCard({ entries, loaded, onSaved }: {
     <section className="glass flex h-full flex-col rounded-[2rem] p-5 sm:p-6">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-xl font-normal tracking-tight">Mood Tracker</h2>
-          <p className="text-sm text-[var(--muted)]">{showCheckIn ? "How are you today? / Si je sot?" : "Your week at a glance"}</p>
+          <h2 className="text-xl font-normal tracking-tight">{t.title}</h2>
+          <p className="text-sm text-[var(--muted)]">{showCheckIn ? t.howAreYou : t.weekGlance}</p>
         </div>
         <Link
           href="/insights"
-          aria-label="Open insights"
+          aria-label={t.openInsights}
           className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-[var(--line)] text-[var(--muted)] hover:text-[var(--fg)]"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -90,35 +132,34 @@ export default function MoodCard({ entries, loaded, onSaved }: {
       {showCheckIn ? (
         <div className="mt-4">
           <div className="flex items-center gap-3">
-            <span className="text-sm text-[var(--muted)]">Low</span>
+            <span className="text-sm text-[var(--muted)]">{t.low}</span>
             <input
               type="range"
               min={1}
               max={10}
               value={mood}
               onChange={(e) => setMood(Number(e.target.value))}
-              aria-label="Mood from 1 to 10"
+              aria-label={t.moodLabel}
               className="flex-1 accent-[var(--accent)]"
             />
-            <span className="text-sm text-[var(--muted)]">Good</span>
+            <span className="text-sm text-[var(--muted)]">{t.good}</span>
             <span className="w-6 text-right text-lg tabular-nums">{mood}</span>
           </div>
-          <p className="mt-3 text-sm text-[var(--muted)]">What's affecting you today? / Çka po të ndikon sot?</p>
+          <p className="mt-3 text-sm text-[var(--muted)]">{t.affecting}</p>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
-            {MOOD_TAGS.map((t) => (
+            {MOOD_TAGS.map((tag) => (
               <button
-                key={t.id}
-                onClick={() => toggleTag(t.id)}
-                aria-pressed={tags.includes(t.id)}
-                title={t.sq}
+                key={tag.id}
+                onClick={() => toggleTag(tag.id)}
+                aria-pressed={tags.includes(tag.id)}
                 className={
                   "rounded-full border px-2.5 py-1 text-sm transition " +
-                  (tags.includes(t.id)
+                  (tags.includes(tag.id)
                     ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--on-accent)]"
                     : "border-[var(--line)] hover:bg-[var(--accent-soft)]")
                 }
               >
-                <span aria-hidden>{t.icon}</span> {t.en}
+                <span aria-hidden>{tag.icon}</span> {tag[lang]}
               </button>
             ))}
           </div>
@@ -126,19 +167,19 @@ export default function MoodCard({ entries, loaded, onSaved }: {
             value={note}
             onChange={(e) => setNote(e.target.value)}
             maxLength={200}
-            placeholder="One line, if you like… / Një rresht…"
+            placeholder={t.notePlaceholder}
             className="mt-3 w-full rounded-2xl bg-[var(--accent-soft)] px-4 py-2 text-base outline-none placeholder:text-[var(--muted)] focus:ring-2 focus:ring-[var(--accent)]"
           />
           <div className="mt-3 flex items-center justify-between text-base">
             <button onClick={skip} className="text-sm text-[var(--muted)] hover:text-[var(--fg)]">
-              Not now
+              {t.notNow}
             </button>
             <button
               onClick={save}
               disabled={saving}
               className="rounded-full bg-[var(--accent)] px-5 py-1.5 text-sm text-[var(--on-accent)] disabled:opacity-40"
             >
-              Save
+              {t.save}
             </button>
           </div>
         </div>
@@ -146,15 +187,15 @@ export default function MoodCard({ entries, loaded, onSaved }: {
         <div className="mt-4 flex flex-1 flex-col justify-end">
           <p className="text-4xl font-normal tracking-tight 2xl:text-5xl">{pct === null ? "–" : `${pct}%`}</p>
           <p className="text-sm text-[var(--muted)]">
-            {avg === null ? "No check-ins this week yet." : weekLine(avg)}
+            {avg === null ? t.noCheckIns : weekLine(avg)}
           </p>
           {!!todayEntry?.tags?.length && (
             <p className="mt-1 text-sm text-[var(--muted)]">
-              Today:{" "}
+              {t.today}{" "}
               {todayEntry.tags
                 .map((id) => moodTag(id))
                 .filter(Boolean)
-                .map((t) => `${t!.icon} ${t!.en}`)
+                .map((tag) => `${tag!.icon} ${tag![lang]}`)
                 .join(" · ")}
             </p>
           )}
@@ -175,8 +216,8 @@ export default function MoodCard({ entries, loaded, onSaved }: {
             ))}
           </div>
           <div className="mt-2 flex justify-between text-sm">
-            <span className="text-[var(--muted)]">Unpleasant</span>
-            <span className="text-[var(--accent)]">Pleasant</span>
+            <span className="text-[var(--muted)]">{t.unpleasant}</span>
+            <span className="text-[var(--accent)]">{t.pleasant}</span>
           </div>
         </div>
       )}

@@ -1,6 +1,21 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useCopy } from "@/lib/i18n";
+
+const en = {
+  noMic: "I can't reach the microphone. Allow it in the browser's address bar.",
+  notCaught: "I didn't catch that. Try again?",
+  failed: "Couldn't use the recording. Please try again.",
+};
+const COPY = {
+  en,
+  sq: {
+    noMic: "Nuk e arrij mikrofonin. Lejoje te shiriti i adresës së shfletuesit.",
+    notCaught: "S'e kapa mirë. Provo përsëri?",
+    failed: "Regjistrimi nuk u përdor dot. Provo përsëri.",
+  } satisfies typeof en,
+};
 
 export type MicState = "idle" | "recording" | "transcribing";
 
@@ -9,6 +24,7 @@ const BARS = 40;
 /** Record from the microphone, show live levels, then turn the recording into text
  *  through /api/transcribe. `onText` receives the transcript. */
 export function useVoiceInput(onText: (text: string) => void) {
+  const t = useCopy(COPY);
   const [state, setState] = useState<MicState>("idle");
   const [error, setError] = useState("");
   const [seconds, setSeconds] = useState(0);
@@ -36,7 +52,7 @@ export function useVoiceInput(onText: (text: string) => void) {
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch {
-      setError("I can't reach the microphone. Allow it in the browser's address bar. / Lejo mikrofonin.");
+      setError(t.noMic);
       return;
     }
 
@@ -87,9 +103,9 @@ export function useVoiceInput(onText: (text: string) => void) {
         if (!res.ok) throw new Error(await res.text());
         const { text } = await res.json();
         if (text) onTextRef.current(text);
-        else setError("I didn't catch that. Try again? / S'e kapa. Provo përsëri?");
-      } catch (err) {
-        setError(err instanceof Error && err.message ? err.message : "Couldn't use the recording.");
+        else setError(t.notCaught);
+      } catch {
+        setError(t.failed);
       } finally {
         setState("idle");
       }

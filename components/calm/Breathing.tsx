@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useCopy, useLang } from "@/lib/i18n";
 
 // Slow breathing: in for 4, out for 6. A longer out-breath helps the body settle.
 const PHASES = [
@@ -10,9 +11,41 @@ const PHASES = [
 ];
 const TOTAL_SECONDS = 120; // about 12 slow breaths
 
+const en = {
+  wellDone: "Well done.",
+  howNow: "How do you feel now?",
+  again: "Again",
+  talk: "Talk about it",
+  calmer: "I feel calmer",
+  ready: "Ready when you are",
+  left: "left · in for 4, out for 6",
+  pause: "Pause",
+  continue: "Continue",
+  start: "Start",
+  restart: "Restart",
+};
+const COPY = {
+  en,
+  sq: {
+    wellDone: "Të lumtë.",
+    howNow: "Si ndihesh tani?",
+    again: "Edhe një herë",
+    talk: "Fol për këtë",
+    calmer: "Ndihem më i qetë",
+    ready: "Kur të jesh gati",
+    left: "mbetur · merr 4, nxirr 6",
+    pause: "Pusho",
+    continue: "Vazhdo",
+    start: "Fillo",
+    restart: "Rifillo",
+  } satisfies typeof en,
+};
+
 const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
 export default function Breathing() {
+  const t = useCopy(COPY);
+  const { lang } = useLang();
   const [running, setRunning] = useState(false);
   const [phase, setPhase] = useState(0);
   const [left, setLeft] = useState(PHASES[0].secs); // seconds left in this phase
@@ -44,17 +77,17 @@ export default function Breathing() {
   if (done) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center text-center">
-        <p className="text-2xl tracking-tight">Well done.</p>
-        <p className="text-[var(--muted)]">Të lumtë. How do you feel now?</p>
+        <p className="text-2xl tracking-tight">{t.wellDone}</p>
+        <p className="text-[var(--muted)]">{t.howNow}</p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button onClick={restart} className="rounded-full border border-[var(--line)] px-5 py-2 text-base">
-            Again
+            {t.again}
           </button>
           <Link href="/chat" className="rounded-full bg-[var(--accent)] px-5 py-2 text-base text-[var(--on-accent)]">
-            Talk about it
+            {t.talk}
           </Link>
           <Link href="/" className="rounded-full border border-[var(--line)] px-5 py-2 text-base">
-            I feel calmer
+            {t.calmer}
           </Link>
         </div>
       </div>
@@ -77,29 +110,28 @@ export default function Breathing() {
         <span className="relative text-center">
           {running ? (
             <>
-              <span className="block text-2xl tracking-tight">{current.en}</span>
-              <span className="block text-sm text-[#4b5a4a]">{current.sq}</span>
+              <span className="block text-2xl tracking-tight">{current[lang]}</span>
               <span className="mt-1 block text-3xl tabular-nums">{left}</span>
             </>
           ) : (
-            <span className="block text-lg">Ready when you are</span>
+            <span className="block text-lg">{t.ready}</span>
           )}
         </span>
       </div>
 
       <p className="mt-8 text-sm text-[var(--muted)] tabular-nums">
-        {mmss(Math.max(0, TOTAL_SECONDS - elapsed))} left · in for 4, out for 6
+        {mmss(Math.max(0, TOTAL_SECONDS - elapsed))} {t.left}
       </p>
       <div className="mt-4 flex gap-2">
         <button
           onClick={() => setRunning((r) => !r)}
           className="rounded-full bg-[var(--accent)] px-6 py-2.5 text-base text-[var(--on-accent)]"
         >
-          {running ? "Pause" : elapsed > 0 ? "Continue" : "Start"}
+          {running ? t.pause : elapsed > 0 ? t.continue : t.start}
         </button>
         {elapsed > 0 && (
           <button onClick={restart} className="rounded-full border border-[var(--line)] px-5 py-2.5 text-base">
-            Restart
+            {t.restart}
           </button>
         )}
       </div>

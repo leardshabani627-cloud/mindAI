@@ -11,4 +11,5 @@ conversations. Write a brief reflection on what you notice.
   early and keep your observations tentative ("so far it looks like...").
 - Never diagnose, never give medical advice, never overstate. Offer patterns as things to wonder about, not facts.
 - End with one small, gentle thought or question to carry with them. Not a to-do list.
-- Write in the language the user's notes and summaries mostly use (Albanian or English). Default to English.`;
+- Write in the language named at the top of the data (the language the person uses the app in).
+  In Albanian, write naturally and warmly, as a person from Albania or Kosovo would.`;

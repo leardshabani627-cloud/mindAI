@@ -1,4 +1,7 @@
+"use client";
+
 import { localDate } from "@/lib/dates";
+import { locale, useLang } from "@/lib/i18n";
 
 type Entry = { entry_date: string; mood: number; note: string; tags?: string[] };
 
@@ -9,6 +12,7 @@ const PAD = { left: 28, right: 12, top: 12, bottom: 28 };
 
 // A plain SVG line chart of mood (1 to 10) over the last 30 days. No chart library needed.
 export default function MoodChart({ entries }: { entries: Entry[] }) {
+  const { lang } = useLang();
   const days = Array.from({ length: DAYS }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (DAYS - 1 - i));
@@ -23,10 +27,10 @@ export default function MoodChart({ entries }: { entries: Entry[] }) {
     .filter((p) => p.i >= 0)
     .map((p) => ({ ...p, x: x(p.i), y: y(p.mood) }));
 
-  const label = (date: string) => new Date(`${date}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const label = (date: string) => new Date(`${date}T12:00:00`).toLocaleDateString(locale(lang), { month: "short", day: "numeric" });
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Mood over the last 30 days">
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={lang === "sq" ? "Gjendja në 30 ditët e fundit" : "Mood over the last 30 days"}>
       {[1, 5, 10].map((v) => (
         <g key={v}>
           <line x1={PAD.left} x2={W - PAD.right} y1={y(v)} y2={y(v)} stroke="var(--muted)" strokeOpacity={0.25} strokeDasharray="4 4" />

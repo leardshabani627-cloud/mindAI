@@ -1,27 +1,35 @@
+"use client";
+
 import { localDate } from "@/lib/dates";
 import { thisWeek, type MoodEntry } from "@/components/home/week";
+import { useCopy, useLang } from "@/lib/i18n";
+
+const en = { label: "Check-ins", title: "This week", days: "days", checkedIn: "Checked in" };
+const COPY = { en, sq: { label: "Kontrollet", title: "Këtë javë", days: "ditë", checkedIn: "U shënua" } satisfies typeof en };
 
 // This week's days, with a check on every day you checked in.
 export default function WeekCard({ entries, loaded }: { entries: MoodEntry[]; loaded: boolean }) {
+  const t = useCopy(COPY);
+  const { lang } = useLang();
   const today = localDate();
   const done = new Set(entries.map((e) => e.entry_date));
   // "This week" depends on your clock, so the days are only filled in once the page runs in the browser.
-  const days = loaded ? thisWeek() : [];
+  const days = loaded ? thisWeek(lang) : [];
   const count = days.filter((d) => done.has(d.date)).length;
 
   return (
     <section className="glass flex h-full flex-col rounded-[2rem] p-5 sm:p-6">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs text-[var(--muted)]">Check-ins</p>
-          <h2 className="text-lg font-normal tracking-tight">This week</h2>
+          <p className="text-xs text-[var(--muted)]">{t.label}</p>
+          <h2 className="text-lg font-normal tracking-tight">{t.title}</h2>
         </div>
         <span className="flex items-center gap-1.5 rounded-full border border-[var(--line)] px-3 py-1 text-sm text-[var(--muted)]">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <circle cx="12" cy="12" r="9" />
             <path d="M12 7v5l3 2" />
           </svg>
-          {count}/7 days
+          {count}/7 {t.days}
         </span>
       </div>
 
@@ -38,7 +46,7 @@ export default function WeekCard({ entries, loaded }: { entries: MoodEntry[]; lo
                 </span>
               ) : checked ? (
                 <span
-                  aria-label="Checked in"
+                  aria-label={t.checkedIn}
                   className="grid h-9 w-9 place-items-center rounded-full bg-[var(--check)] text-white"
                 >
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

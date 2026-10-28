@@ -1,4 +1,31 @@
+"use client";
+
+import { useCopy, useLang } from "@/lib/i18n";
 import { moodTag } from "@/lib/moodTags";
+
+const en = {
+  title: "What affects your mood",
+  compared: (usual: string) => `compared with your usual ${usual}`,
+  empty: "When you check in, tap what's affecting your day (sleep, work, family…). After a few days, patterns show up here.",
+  days: "days",
+  lower: (what: string, by: string) => `On days with ${what}, your mood has been ${by} lower than usual.`,
+  higher: (what: string, by: string) => `On days with ${what}, your mood has been ${by} higher than usual.`,
+  same: (what: string) => `Days with ${what} look about like your usual.`,
+  note: "Based only on your own check-ins from the last 30 days. Patterns, not proof: more check-ins make them clearer.",
+};
+const COPY = {
+  en,
+  sq: {
+    title: "Çka ndikon në gjendjen tënde",
+    compared: (usual: string) => `krahasuar me mesataren tënde ${usual}`,
+    empty: "Kur bën kontrollin, prek çka po të ndikon (gjumi, puna, familja…). Pas disa ditësh, modelet shfaqen këtu.",
+    days: "ditë",
+    lower: (what: string, by: string) => `Në ditët me ${what}, gjendja jote ka qenë ${by} më e ulët se zakonisht.`,
+    higher: (what: string, by: string) => `Në ditët me ${what}, gjendja jote ka qenë ${by} më e lartë se zakonisht.`,
+    same: (what: string) => `Ditët me ${what} duken si zakonisht.`,
+    note: "Bazuar vetëm në kontrollet e tua të 30 ditëve të fundit. Modele, jo prova: më shumë kontrolle i bëjnë më të qarta.",
+  } satisfies typeof en,
+};
 
 type Entry = { mood: number; tags?: string[] };
 
@@ -7,6 +34,8 @@ const MIN_DAYS = 2; // a factor needs at least this many check-ins before we say
 // For each thing you tagged, compare your mood on those days with your usual mood.
 // Simple averages over your own check-ins, shown gently: patterns, not proof.
 export default function MoodFactors({ entries }: { entries: Entry[] }) {
+  const t = useCopy(COPY);
+  const { lang } = useLang();
   const usual = entries.reduce((s, e) => s + e.mood, 0) / (entries.length || 1);
 
   const factors = Object.entries(
@@ -21,12 +50,12 @@ export default function MoodFactors({ entries }: { entries: Entry[] }) {
 
   return (
     <section className="mt-6 rounded-2xl glass px-4 py-4">
-      <h2 className="text-lg tracking-tight">What affects your mood</h2>
-      <p className="mb-3 text-sm text-[var(--muted)]">Çka ndikon në gjendjen tënde · compared with your usual {usual.toFixed(1)}</p>
+      <h2 className="text-lg tracking-tight">{t.title}</h2>
+      <p className="mb-3 text-sm text-[var(--muted)]">{t.compared(usual.toFixed(1))}</p>
 
       {factors.length === 0 ? (
         <p className="text-base text-[var(--muted)]">
-          When you check in, tap what&apos;s affecting your day (sleep, work, family…). After a few days, patterns show up here.
+          {t.empty}
         </p>
       ) : (
         <ul className="space-y-3">
@@ -38,8 +67,8 @@ export default function MoodFactors({ entries }: { entries: Entry[] }) {
               <li key={tag.id}>
                 <div className="flex items-baseline justify-between gap-3 text-base">
                   <span>
-                    <span aria-hidden>{tag.icon}</span> {tag.en}
-                    <span className="text-sm text-[var(--muted)]"> · {days} days</span>
+                    <span aria-hidden>{tag.icon}</span> {tag[lang]}
+                    <span className="text-sm text-[var(--muted)]"> · {days} {t.days}</span>
                   </span>
                   <span className={"text-sm tabular-nums " + (lower ? "text-[#b0704f]" : higher ? "text-[var(--accent)]" : "text-[var(--muted)]")}>
                     {higher ? "+" : ""}
@@ -55,10 +84,10 @@ export default function MoodFactors({ entries }: { entries: Entry[] }) {
                 </div>
                 <p className="mt-1 text-sm text-[var(--muted)]">
                   {lower
-                    ? `On days with ${tag.en.toLowerCase()}, your mood has been ${Math.abs(diff).toFixed(1)} lower than usual.`
+                    ? t.lower(tag[lang].toLowerCase(), Math.abs(diff).toFixed(1))
                     : higher
-                      ? `On days with ${tag.en.toLowerCase()}, your mood has been ${diff.toFixed(1)} higher than usual.`
-                      : `Days with ${tag.en.toLowerCase()} look about like your usual.`}
+                      ? t.higher(tag[lang].toLowerCase(), diff.toFixed(1))
+                      : t.same(tag[lang].toLowerCase())}
                 </p>
               </li>
             );
@@ -67,7 +96,7 @@ export default function MoodFactors({ entries }: { entries: Entry[] }) {
       )}
       {factors.length > 0 && (
         <p className="mt-4 text-xs text-[var(--muted)]">
-          Based only on your own check-ins from the last 30 days. Patterns, not proof: more check-ins make them clearer.
+          {t.note}
         </p>
       )}
     </section>
