@@ -15,9 +15,13 @@ const HILLS = [
 
 const crest = (d: string) => d.split(" V")[0];
 
-export default function Scenery() {
+/** Full-screen behind every page, or `contained` to fill a panel (the sign-in showcase). */
+export default function Scenery({ contained = false }: { contained?: boolean }) {
   return (
-    <div aria-hidden className="scenery pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+    <div
+      aria-hidden
+      className={`scenery pointer-events-none overflow-hidden ${contained ? "absolute inset-0" : "fixed inset-0 -z-10"}`}
+    >
       <svg className="h-full w-full" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMax slice">
         <defs>
           <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
