@@ -1,43 +1,79 @@
-import Link from "next/link";
-import TopMenu from "@/components/TopMenu";
+"use client";
 
-const TABS = [
-  { href: "/", label: "Home" },
-  { href: "/chat", label: "Chat" },
-  { href: "/journal", label: "Journal" },
-  { href: "/calm", label: "Calm" },
-  { href: "/insights", label: "Insights" },
-  { href: "/memory", label: "Memory" },
-];
+import Link from "next/link";
+import LanguageSwitch from "@/components/LanguageSwitch";
+import LockIcon from "@/components/LockIcon";
+import TopMenu from "@/components/TopMenu";
+import Wordmark from "@/components/Wordmark";
+import { useCopy } from "@/lib/i18n";
+
+const en = {
+  tabs: [
+    { href: "/", label: "Home" },
+    { href: "/chat", label: "Chat" },
+    { href: "/journal", label: "Journal" },
+    { href: "/calm", label: "Calm" },
+    { href: "/insights", label: "Insights" },
+    { href: "/memory", label: "Memory" },
+  ],
+  you: "You",
+  guest: "Guest",
+  privateSpace: "Private space",
+  guestVisit: "Guest visit",
+  settings: "Settings",
+};
+const COPY = {
+  en,
+  sq: {
+    tabs: [
+      { href: "/", label: "Ballina" },
+      { href: "/chat", label: "Bisedo" },
+      { href: "/journal", label: "Ditari" },
+      { href: "/calm", label: "Qetësohu" },
+      { href: "/insights", label: "Pasqyra" },
+      { href: "/memory", label: "Kujtesa" },
+    ],
+    you: "Ti",
+    guest: "Mysafir",
+    privateSpace: "Hapësirë private",
+    guestVisit: "Vizitë si mysafir",
+    settings: "Cilësimet",
+  } satisfies typeof en,
+};
 
 const pill = "glass rounded-full";
 
-// Top bar: logo, page tabs, who is signed in, and settings.
-export default function NavBar({ email }: { email: string }) {
-  const name = email.split("@")[0] || "You";
+// Top bar: logo, page tabs, language, who is signed in, and settings.
+const ACCOUNT_ONLY = ["/journal", "/insights", "/memory"];
+
+export default function NavBar({ email, name: displayName, guest = false }: { email: string; name?: string | null; guest?: boolean }) {
+  const t = useCopy(COPY);
+  const name = displayName || email.split("@")[0] || (guest ? t.guest : t.you);
 
   return (
     <nav className="flex items-center justify-between gap-3">
       <div className="flex items-center gap-2">
-        <Link href="/" className={`${pill} flex items-center gap-2 px-4 py-2 text-base font-normal tracking-tight`}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-[var(--accent)]">
-            <path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6 5.6 18.4" />
-          </svg>
-          Mind
+        <Link href="/" aria-label="Mind" className={`${pill} flex items-center px-5 py-1.5`}>
+          <Wordmark className="text-2xl" />
         </Link>
 
         <div className={`${pill} hidden items-center gap-1 p-1 md:flex`}>
-          {TABS.map((t) =>
-            t.href === "/" ? (
-              <span key={t.href} className="flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-4 py-1.5 text-sm text-[var(--on-accent)]">
+          {t.tabs.map((tab) =>
+            tab.href === "/" ? (
+              <span key={tab.href} className="flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-4 py-1.5 text-sm text-[var(--on-accent)]">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 3 3 10.5V21h6v-6h6v6h6V10.5z" />
                 </svg>
-                {t.label}
+                {tab.label}
               </span>
             ) : (
-              <Link key={t.href} href={t.href} className="rounded-full px-4 py-1.5 text-sm text-[var(--fg)]/80 hover:bg-[var(--accent-soft)]">
-                {t.label}
+              <Link
+                key={tab.href}
+                href={tab.href}
+                className="flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm text-[var(--fg)]/80 hover:bg-[var(--accent-soft)]"
+              >
+                {tab.label}
+                {guest && ACCOUNT_ONLY.includes(tab.href) && <LockIcon size={12} className="text-[var(--muted)]" />}
               </Link>
             ),
           )}
@@ -45,18 +81,19 @@ export default function NavBar({ email }: { email: string }) {
       </div>
 
       <div className="flex items-center gap-2">
+        <LanguageSwitch className="hidden sm:flex" />
         <div className="hidden items-center gap-2.5 pr-1 sm:flex">
           <span className="grid h-10 w-10 place-items-center rounded-full bg-[radial-gradient(circle_at_30%_30%,#ffffff,#c4e6d6_45%,#9fc4e8)] text-sm font-medium text-[#2a4a3a]">
             {name.slice(0, 1).toUpperCase()}
           </span>
           <span className="leading-tight">
             <span className="block max-w-[11rem] truncate text-sm font-medium">{name}</span>
-            <span className="block text-xs text-[var(--muted)]">Private space</span>
+            <span className="block text-xs text-[var(--muted)]">{guest ? t.guestVisit : t.privateSpace}</span>
           </span>
         </div>
         <Link
           href="/settings"
-          aria-label="Settings"
+          aria-label={t.settings}
           className={`${pill} grid h-10 w-10 place-items-center text-[var(--muted)] hover:text-[var(--fg)]`}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

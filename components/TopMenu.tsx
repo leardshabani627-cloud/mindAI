@@ -2,27 +2,58 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import LockIcon from "@/components/LockIcon";
+import LanguageSwitch from "@/components/LanguageSwitch";
+import { useCopy } from "@/lib/i18n";
+import { useIsGuest } from "@/lib/useIsGuest";
 
-const LINKS = [
-  { href: "/", label: "Home" },
-  { href: "/chat", label: "Chat" },
-  { href: "/journal", label: "Journal" },
-  { href: "/calm", label: "Calm down (2 min)" },
-  { href: "/safety-plan", label: "My safety plan" },
-  { href: "/insights", label: "Insights" },
-  { href: "/memory", label: "Memory" },
-  { href: "/settings", label: "Settings" },
-];
+const ACCOUNT_ONLY = ["/journal", "/safety-plan", "/letters", "/insights", "/memory"];
 
-/** The small ⋯ menu. `children` adds page-specific items above the links. */
+const en = {
+  menu: "Menu",
+  language: "Language",
+  links: [
+    { href: "/", label: "Home" },
+    { href: "/chat", label: "Chat" },
+    { href: "/journal", label: "Journal" },
+    { href: "/calm", label: "Calm down (2 min)" },
+    { href: "/safety-plan", label: "My safety plan" },
+    { href: "/letters", label: "Weekly letters" },
+    { href: "/insights", label: "Insights" },
+    { href: "/memory", label: "Memory" },
+    { href: "/settings", label: "Settings" },
+  ],
+};
+const COPY = {
+  en,
+  sq: {
+    menu: "Menyja",
+    language: "Gjuha",
+    links: [
+      { href: "/", label: "Ballina" },
+      { href: "/chat", label: "Bisedo" },
+      { href: "/journal", label: "Ditari" },
+      { href: "/calm", label: "Qetësohu (2 min)" },
+      { href: "/safety-plan", label: "Plani im i sigurisë" },
+      { href: "/letters", label: "Letrat e javës" },
+      { href: "/insights", label: "Pasqyra" },
+      { href: "/memory", label: "Kujtesa" },
+      { href: "/settings", label: "Cilësimet" },
+    ],
+  } satisfies typeof en,
+};
+
+/** The small ⋯ menu, with the language switch. `children` adds page-specific items above the links. */
 export default function TopMenu({ children, current }: { children?: React.ReactNode; current?: string }) {
   const [open, setOpen] = useState(false);
+  const t = useCopy(COPY);
+  const guest = useIsGuest();
 
   return (
     <div className="relative">
       <button
         onClick={() => setOpen((o) => !o)}
-        aria-label="Menu"
+        aria-label={t.menu}
         aria-expanded={open}
         className="glass grid h-10 w-10 place-items-center rounded-full text-[var(--muted)] hover:text-[var(--fg)]"
       >
@@ -33,16 +64,23 @@ export default function TopMenu({ children, current }: { children?: React.ReactN
         </svg>
       </button>
       {open && (
-        <div
-          onClick={() => setOpen(false)}
-          className="absolute right-0 z-30 mt-2 w-56 rounded-2xl text-[var(--fg)] border border-[var(--line)] bg-[var(--card-solid)] p-1.5 text-base shadow-xl"
-        >
-          {children}
-          {LINKS.filter((l) => l.href !== current).map((l) => (
-            <Link key={l.href} href={l.href} className="block rounded-xl px-3 py-2 hover:bg-[var(--accent-soft)]">
-              {l.label}
-            </Link>
-          ))}
+        <div className="absolute right-0 z-30 mt-2 w-60 rounded-2xl border border-[var(--line)] bg-[var(--card-solid)] p-1.5 text-base text-[var(--fg)] shadow-xl">
+          <div onClick={() => setOpen(false)}>
+            {children}
+            {t.links
+              .filter((l) => l.href !== current)
+              .map((l) => (
+                <Link key={l.href} href={l.href} className="flex items-center justify-between rounded-xl px-3 py-2 hover:bg-[var(--accent-soft)]">
+                  {l.label}
+                  {guest && ACCOUNT_ONLY.includes(l.href) && <LockIcon size={13} className="text-[var(--muted)]" />}
+                </Link>
+              ))}
+          </div>
+          {/* Changing language keeps the menu open, so you can see it switch. */}
+          <div className="mt-1 flex items-center justify-between border-t border-[var(--line)] px-3 pt-2 pb-1">
+            <span className="text-sm text-[var(--muted)]">{t.language}</span>
+            <LanguageSwitch />
+          </div>
         </div>
       )}
     </div>

@@ -1,5 +1,5 @@
 import { summarizeSession } from "@/lib/memory";
-import { serverClient, unauthorized } from "@/lib/supabase/server";
+import { isGuest, serverClient, unauthorized } from "@/lib/supabase/server";
 
 export const maxDuration = 60;
 
@@ -14,6 +14,8 @@ export async function POST(req: Request) {
   if (typeof sessionId !== "string" || !UUID.test(sessionId)) {
     return new Response("Invalid request.", { status: 400 });
   }
+  // Guests have no memories: their conversations are not summarized.
+  if (isGuest(user)) return Response.json({ result: "guest" });
   const result = await summarizeSession(supabase, user.id, sessionId);
   return Response.json({ result }, { status: result === "failed" ? 502 : 200 });
 }

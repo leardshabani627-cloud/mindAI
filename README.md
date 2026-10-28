@@ -2,7 +2,9 @@
 
 A calm, private space to talk to an AI companion, in English or Albanian. Next.js, TypeScript, Tailwind, Supabase.
 
-Features: streaming chat with four AI companions (text or voice), long-term memory (session summaries), daily mood check-in with "what's affecting you" tags and Insights, a private journal, a 2-minute calm-down tool (breathing and 5-4-3-2-1 grounding), a personal safety plan, a crisis banner with your own contacts, "delete all my data", and a login so only you can see your data.
+A language switch (EN | SQ) changes the whole interface between English and Albanian.
+
+Features: streaming chat with four AI companions (text or voice), long-term memory (session summaries), daily mood check-in with "what's affecting you" tags and Insights, a private journal, a 2-minute calm-down tool (breathing and 5-4-3-2-1 grounding), a personal safety plan, weekly letters from your companion, a crisis banner with your own contacts, "delete all my data", and a login so only you can see your data.
 
 ## Environment variables
 
@@ -29,17 +31,23 @@ Never add the Supabase `service_role` / secret key. This app doesn't need it, an
    4. `20261027000000_safety_plan.sql`
    5. `20261027000001_journal.sql`
    6. `20261027000002_mood_tags.sql`
-3. **Your login.** Authentication → Users → **Add user** → enter your email and a strong password, and tick *Auto Confirm User*.
-4. **Close sign-ups.** Authentication → Sign In / Providers → turn **off** "Allow new users to sign up". The app has no sign-up page, and this stops anyone else creating an account.
-5. **Keys.** Project Settings → API: copy the URL and the anon/publishable key into `.env.local`.
-6. **Run it.**
+   7. `20261027000003_weekly_letters.sql`
+   8. `20261027000004_onboarding.sql`
+   9. `20261028000000_guests.sql` (guests can't save journal, mood, memories or letters, and inactive guests are removed after 30 days)
+3. **Sign-ups.** Authentication → Sign In / Providers → Email: turn **on** "Allow new users to sign up" and keep **"Confirm email"** on. People then create their own account at `/signup` and get a short welcome on first sign-in.
+4. **Links in emails.** Authentication → URL Configuration: set **Site URL** to your app's address (e.g. `http://localhost:3001`, later your Vercel URL) and add `<your address>/auth/callback` under **Redirect URLs** (one per address you use).
+5. **Email sending.** Supabase's built-in email only reaches your project's team members and a few emails per hour. Before inviting other people, add your own SMTP (Authentication → Emails → SMTP Settings), for example a free [Resend](https://resend.com) account.
+   - *Optional, "Continue as guest":* Authentication → Sign In / Providers: turn on **Allow anonymous sign-ins**. A guest who makes an account gets the "Change email address" email; with custom SMTP, put `{{ .Token }}` in that template (like `confirm-signup.html`) so they can type the code. A link also works: it comes back through `/auth/callback` to choose a password. Until then the button explains that guest visits aren't switched on yet. Before going public, also turn on a CAPTCHA (Authentication → Attack Protection), since anyone can start a guest visit.
+   - *Optional, "Continue with Google":* Authentication → Sign In / Providers → **Google**: turn it on and paste a Client ID and Secret from Google Cloud (APIs & Services → Credentials → OAuth client, type Web application, with `https://<your-project>.supabase.co/auth/v1/callback` as the authorized redirect URI). Until then the button explains that Google isn't switched on yet.
+6. **Keys.** Project Settings → API: copy the URL and the anon/publishable key into `.env.local`.
+7. **Run it.**
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open http://localhost:3000 and sign in.
+Open http://localhost:3000, create your account at `/signup` (or sign in), and follow the short welcome.
 
 ## Deploy to Vercel
 
@@ -54,6 +62,7 @@ Open http://localhost:3000 and sign in.
 - AI keys stay on the server. The browser only talks to this app's own API routes.
 - **Settings** lets you enter your own trusted people and crisis resources (nothing is hardcoded). They appear in a gentle banner when a message looks like self-harm or hopelessness, and the companion can point to them. The detection is a simple phrase list in `lib/crisis.ts`, so it will miss things. It's a safety net, not a guarantee.
 - **Settings → Delete all my data** erases your conversations, memories, mood entries and settings. It keeps the login itself; remove that under Authentication → Users.
+- **Guests** ("Continue as guest") can chat (20 messages a day), use the calm tools and set contacts. Journal, mood check-ins, memories, weekly letters and the safety plan need a free account; this is enforced in the API routes and in the database. Making an account keeps everything. Guests who haven't chatted for 30 days are deleted each night by a `pg_cron` job.
 - Your chat text is sent to the AI provider you configure. Check their data and privacy terms, since free tiers sometimes use data for training.
 
 ## Editing the companion

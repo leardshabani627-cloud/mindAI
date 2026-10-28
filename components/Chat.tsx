@@ -4,15 +4,78 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import CrisisBanner from "@/components/CrisisBanner";
 import Disclaimer from "@/components/Disclaimer";
+import { GuestBanner } from "@/components/Guest";
 import TopMenu, { menuItemClass } from "@/components/TopMenu";
 import Waveform from "@/components/Waveform";
 import { looksLikeCrisis } from "@/lib/crisis";
+import { UPGRADE_PATH } from "@/lib/guest";
 import { takeStartVoice } from "@/lib/pending";
 import type { Settings } from "@/lib/settings";
 import { formatSeconds, useVoiceInput } from "@/lib/useVoiceInput";
 import { speak, stopSpeaking } from "@/lib/voice";
 import Portrait from "@/components/Portrait";
 import { COMPANION_KEY, DEFAULT_COMPANION, getCompanion, type Companion } from "@/prompts/companions";
+import { useCopy } from "@/lib/i18n";
+
+const en = {
+  listening: "Listening to your story…",
+  writingDown: "Writing it down…",
+  thinking: (name: string) => `${name} is thinking…`,
+  idle: "Say anything, in English or shqip.",
+  backHome: "Back to home",
+  ai: "AI companion",
+  endAndNew: "End & start new",
+  readAloud: (on: boolean) => `Read replies aloud: ${on ? "on" : "off"}`,
+  stopRecording: "Stop recording",
+  startSpeaking: "Start speaking",
+  emptyTitle: "I'm here. Say anything.",
+  emptyText: "Type or speak, whatever you like.",
+  discard: "Discard recording",
+  placeholder: "How are you feeling today? Type here or dictate",
+  private: "Private, only for you",
+  send: "Send",
+  noAnswer: "No answer came back. Please try again.",
+  noVoice: "This device has no voice for that language, so I can't read it aloud.",
+  pause: "I need a short pause. Send that again in a few seconds.",
+  unreachable: "I couldn't reach the AI service. Check your internet connection and try again.",
+  generic: "Something went wrong. Please try again.",
+  left: (n: number) => (n === 1 ? "1 guest message left today" : `${n} guest messages left today`),
+  limitTitle: "That's all the guest messages for today",
+  limitText: "Create a free account to keep talking now. It's free, and this conversation comes with you.",
+  create: "Create a free account",
+  limitLater: "Or come back tomorrow.",
+};
+const COPY = {
+  en,
+  sq: {
+    listening: "Po dëgjoj historinë tënde…",
+    writingDown: "Po e shkruaj…",
+    thinking: (name: string) => `${name} po mendon…`,
+    idle: "Thuaj çfarëdo, shqip ose anglisht.",
+    backHome: "Kthehu në ballinë",
+    ai: "Shoqërues AI",
+    endAndNew: "Mbylle dhe fillo të re",
+    readAloud: (on: boolean) => `Lexoji përgjigjet me zë: ${on ? "po" : "jo"}`,
+    stopRecording: "Ndalo regjistrimin",
+    startSpeaking: "Fillo të flasësh",
+    emptyTitle: "Jam këtu. Thuaj çfarëdo.",
+    emptyText: "Shkruaj ose fol, çfarë të duash.",
+    discard: "Fshije regjistrimin",
+    placeholder: "Si po ndihesh sot? Shkruaj ose fol këtu",
+    private: "Privat, vetëm për ty",
+    send: "Dërgo",
+    noAnswer: "Nuk erdhi asnjë përgjigje. Provo përsëri.",
+    noVoice: "Kjo pajisje nuk ka zë për këtë gjuhë, ndaj s'mund ta lexoj me zë.",
+    pause: "Më duhet një pushim i shkurtër. Dërgoje prapë pas pak sekondash.",
+    unreachable: "Nuk arrita te shërbimi i AI. Kontrollo internetin dhe provo përsëri.",
+    generic: "Diçka shkoi keq. Provo përsëri.",
+    left: (n: number) => (n === 1 ? "Të ka mbetur 1 mesazh si mysafir sot" : `Të kanë mbetur ${n} mesazhe si mysafir sot`),
+    limitTitle: "Kaq ishin mesazhet si mysafir për sot",
+    limitText: "Krijo një llogari falas për të vazhduar tani. Është falas, dhe kjo bisedë vjen me ty.",
+    create: "Krijo një llogari falas",
+    limitLater: "Ose kthehu nesër.",
+  } satisfies typeof en,
+};
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -53,6 +116,7 @@ function endSession(sessionId: string) {
 }
 
 export default function Chat() {
+  const t = useCopy(COPY);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -63,6 +127,7 @@ export default function Chat() {
   const [settingsFresh, setSettingsFresh] = useState(false); // true once the server has answered
   const [crisis, setCrisis] = useState(false);
   const [companion, setCompanion] = useState<Companion>(DEFAULT_COMPANION); // chosen on the home screen
+  const [guestLeft, setGuestLeft] = useState<number | null>(null); // messages left today; null for accounts
   const listRef = useRef<HTMLElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const sessionRef = useRef("");
@@ -124,6 +189,16 @@ export default function Chat() {
       .catch(() => {});
   }, []);
 
+  // Guests: how many messages are left today.
+  useEffect(() => {
+    fetch("/api/chat")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((info) => {
+        if (info?.guest) setGuestLeft(info.left);
+      })
+      .catch(() => {});
+  }, []);
+
   async function acceptDisclaimer() {
     setSettings((s) => s && { ...s, disclaimer_accepted_at: new Date().toISOString() });
     await fetch("/api/settings", {
@@ -163,7 +238,7 @@ export default function Chat() {
 
   async function send() {
     const text = input.trim();
-    if (!text || busy) return;
+    if (!text || busy || guestLeft === 0) return;
     if (looksLikeCrisis(text)) setCrisis(true);
     stopSpeaking();
     setVoiceNote("");
@@ -177,13 +252,26 @@ export default function Chat() {
     const setReply = (content: string) =>
       setMessages((prev) => [...prev.slice(0, -1), { role: "assistant", content }]);
 
+    let failure = t.generic;
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionId: sessionRef.current, messages: history, companion: companion.id }),
       });
-      if (!res.ok || !res.body) throw new Error(await res.text());
+      // A guest who has used today's messages: put their words back and show the way to keep going.
+      if (res.status === 403 && res.headers.get("X-Guest-Left") === "0") {
+        setGuestLeft(0);
+        setMessages(messages);
+        setInput(text);
+        return;
+      }
+      const left = res.headers.get("X-Guest-Left");
+      if (left !== null) setGuestLeft(Number(left));
+      if (!res.ok || !res.body) {
+        failure = res.status === 429 ? t.pause : res.status === 502 ? t.unreachable : t.generic;
+        throw new Error(failure);
+      }
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
@@ -194,12 +282,12 @@ export default function Chat() {
         reply += decoder.decode(value, { stream: true });
         setReply(reply);
       }
-      if (!reply) setReply("No answer came back. Please try again.");
+      if (!reply) setReply(t.noAnswer);
       if (speakAloud && reply && !speak(reply)) {
-        setVoiceNote("This device has no voice for that language, so I can't read it aloud.");
+        setVoiceNote(t.noVoice);
       }
-    } catch (err) {
-      setReply(err instanceof Error && err.message ? err.message : "Something went wrong. Please try again.");
+    } catch {
+      setReply(failure);
     } finally {
       setBusy(false);
       store.set(KEYS.active, String(Date.now()));
@@ -209,19 +297,19 @@ export default function Chat() {
 
 
   const status = recording
-    ? "Listening to your story…"
+    ? t.listening
     : voice.state === "transcribing"
-      ? "Writing it down… / Po e shkruaj…"
+      ? t.writingDown
       : busy
-        ? `${companion.name} is thinking…`
-        : "Say anything, in English or shqip.";
+        ? t.thinking(companion.name)
+        : t.idle;
   const note = voice.error || voiceNote;
   const empty = loaded && messages.length === 0;
 
   return (
     <main className="flex h-dvh items-center justify-center p-3 sm:p-6">
       {/* The whole conversation lives inside one calm card, floating over the hills. */}
-      <div className="animate-rise relative flex h-full max-h-[880px] w-full max-w-xl flex-col overflow-hidden rounded-[2.25rem] bg-gradient-to-br from-[var(--voice-from)] to-[var(--voice-to)] text-white shadow-[0_40px_90px_-40px_rgba(30,60,30,0.75)]">
+      <div className="animate-rise relative flex h-full max-h-[880px] w-full max-w-xl flex-col overflow-clip rounded-[2.25rem] bg-gradient-to-br from-[var(--voice-from)] to-[var(--voice-to)] text-white shadow-[0_40px_90px_-40px_rgba(30,60,30,0.75)]">
         <div className="pointer-events-none absolute -top-24 -right-16 h-72 w-72 rounded-full bg-white/15 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-24 -left-20 h-72 w-72 rounded-full bg-[#d8e6a8]/20 blur-3xl" />
 
@@ -229,7 +317,7 @@ export default function Chat() {
           <div className="flex min-w-0 items-start gap-2">
             <Link
               href="/"
-              aria-label="Back to home"
+              aria-label={t.backHome}
               className="-ml-1 mt-1 grid h-8 w-8 shrink-0 place-items-center rounded-full text-white/80 hover:bg-white/10 hover:text-white"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -244,7 +332,7 @@ export default function Chat() {
             </span>
             <div className="min-w-0">
               <h1 className="text-2xl font-normal tracking-tight">
-                {companion.name} <span className="align-middle text-xs text-white/75">· AI companion</span>
+                {companion.name} <span className="align-middle text-xs text-white/75">· {t.ai}</span>
               </h1>
               <p className="truncate text-sm text-white/90">{status}</p>
             </div>
@@ -252,10 +340,10 @@ export default function Chat() {
           <div className="flex shrink-0 items-center gap-2">
             <TopMenu current="/chat">
               <button onClick={finishSession} className={menuItemClass}>
-                End &amp; start new
+                {t.endAndNew}
               </button>
               <button onClick={toggleSpeakAloud} className={menuItemClass}>
-                Read replies aloud: {speakAloud ? "on" : "off"}
+                {t.readAloud(speakAloud)}
               </button>
               <hr className="my-1 border-[var(--line)]" />
             </TopMenu>
@@ -265,7 +353,7 @@ export default function Chat() {
                 voice.toggle();
               }}
               disabled={voice.state === "transcribing"}
-              aria-label={recording ? "Stop recording" : "Start speaking"}
+              aria-label={recording ? t.stopRecording : t.startSpeaking}
               className="grid h-12 w-12 place-items-center rounded-full bg-white text-[var(--voice-from)] shadow-md transition hover:scale-105 disabled:opacity-60"
             >
               {recording ? (
@@ -283,6 +371,8 @@ export default function Chat() {
           </div>
         </header>
 
+        {guestLeft !== null && <GuestBanner variant="chat" />}
+
         {crisis && (
           <div className="relative px-4 pt-4 text-[var(--fg)] sm:px-6">
             <CrisisBanner
@@ -297,8 +387,8 @@ export default function Chat() {
         <section ref={listRef} className="relative min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4 [scrollbar-width:thin] sm:px-7">
           {empty && (
             <div className="flex h-full flex-col items-center justify-center text-center">
-              <p className="text-xl font-normal tracking-tight">I&apos;m here. Say anything.</p>
-              <p className="text-base text-white/70">Jam këtu. Shkruaj ose fol, çfarë të duash.</p>
+              <p className="text-xl font-normal tracking-tight">{t.emptyTitle}</p>
+              <p className="text-base text-white/70">{t.emptyText}</p>
             </div>
           )}
           {messages.map((m, i) => (
@@ -327,7 +417,7 @@ export default function Chat() {
             <button
               onClick={voice.cancel}
               disabled={!recording}
-              aria-label="Discard recording"
+              aria-label={t.discard}
               className="flex items-center gap-1.5 disabled:opacity-50"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -338,6 +428,20 @@ export default function Chat() {
             <span className="tabular-nums">{formatSeconds(voice.seconds)}</span>
           </div>
         </div>
+
+        {guestLeft === 0 && (
+          <div className="relative mx-3 mt-2 rounded-3xl bg-[var(--card-solid)] p-5 text-center text-[var(--fg)] shadow-lg sm:mx-4">
+            <p className="text-lg tracking-tight">{t.limitTitle}</p>
+            <p className="mt-1 text-sm text-[var(--muted)]">{t.limitText}</p>
+            <Link
+              href={UPGRADE_PATH}
+              className="mt-4 inline-flex rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm text-[var(--on-accent)] hover:bg-[var(--accent-strong)]"
+            >
+              {t.create}
+            </Link>
+            <p className="mt-2 text-xs text-[var(--muted)]">{t.limitLater}</p>
+          </div>
+        )}
 
         <form
           onSubmit={(e) => {
@@ -357,15 +461,16 @@ export default function Chat() {
               }
             }}
             rows={2}
-            placeholder="How are you feeling today? Type here or dictate"
+            disabled={guestLeft === 0}
+            placeholder={t.placeholder}
             className="max-h-40 w-full resize-none bg-transparent text-base outline-none placeholder:text-[var(--muted)]"
           />
           <div className="mt-2 flex items-center justify-between gap-3">
-            <span className="min-w-0 truncate text-sm text-[var(--muted)]">{note || "Private, only for you"}</span>
+            <span className="min-w-0 truncate text-sm text-[var(--muted)]">{note || (guestLeft !== null ? t.left(guestLeft) : t.private)}</span>
             <button
               type="submit"
-              disabled={busy || !input.trim()}
-              aria-label="Send"
+              disabled={busy || !input.trim() || guestLeft === 0}
+              aria-label={t.send}
               className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--accent)] text-[var(--on-accent)] transition disabled:bg-[var(--accent-soft)] disabled:text-[var(--muted)]"
             >
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

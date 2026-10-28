@@ -1,11 +1,12 @@
 import { cleanEntry, deleteEntry, updateEntry } from "@/lib/journal";
-import { serverClient, unauthorized } from "@/lib/supabase/server";
+import { accountsOnly, isGuest, serverClient, unauthorized } from "@/lib/supabase/server";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { supabase, user } = await serverClient();
   if (!user) return unauthorized();
+  if (isGuest(user)) return accountsOnly();
 
   const { id } = await params;
   const entry = cleanEntry(await req.json().catch(() => null));
@@ -18,6 +19,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { supabase, user } = await serverClient();
   if (!user) return unauthorized();
+  if (isGuest(user)) return accountsOnly();
 
   const { id } = await params;
   if (!UUID.test(id)) return new Response("Invalid id.", { status: 400 });

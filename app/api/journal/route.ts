@@ -1,15 +1,17 @@
 import { cleanEntry, createEntry, listEntries } from "@/lib/journal";
-import { serverClient, unauthorized } from "@/lib/supabase/server";
+import { accountsOnly, isGuest, serverClient, unauthorized } from "@/lib/supabase/server";
 
 export async function GET() {
   const { supabase, user } = await serverClient();
   if (!user) return unauthorized();
+  if (isGuest(user)) return accountsOnly();
   return Response.json({ entries: await listEntries(supabase) });
 }
 
 export async function POST(req: Request) {
   const { supabase, user } = await serverClient();
   if (!user) return unauthorized();
+  if (isGuest(user)) return accountsOnly();
 
   const entry = cleanEntry(await req.json().catch(() => null));
   if (!entry) return new Response("Invalid entry.", { status: 400 });

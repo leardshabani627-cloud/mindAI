@@ -1,16 +1,18 @@
 import { DATE_RE, listMood, saveMood } from "@/lib/mood";
 import { cleanMoodTags } from "@/lib/moodTags";
-import { serverClient, unauthorized } from "@/lib/supabase/server";
+import { accountsOnly, isGuest, serverClient, unauthorized } from "@/lib/supabase/server";
 
 export async function GET() {
   const { supabase, user } = await serverClient();
   if (!user) return unauthorized();
+  if (isGuest(user)) return accountsOnly();
   return Response.json({ entries: await listMood(supabase, 30) });
 }
 
 export async function POST(req: Request) {
   const { supabase, user } = await serverClient();
   if (!user) return unauthorized();
+  if (isGuest(user)) return accountsOnly();
 
   const { date, mood, note, tags } = await req.json().catch(() => ({}));
   const cleanTags = cleanMoodTags(tags); // what's affecting the day, e.g. ["sleep", "work"]
