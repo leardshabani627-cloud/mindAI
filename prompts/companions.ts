@@ -9,6 +9,7 @@ export type Companion = {
   about: string; // one line on the card
   sq: { title: string; about: string }; // the same two lines in Albanian
   style: string; // added to the system prompt
+  voice: string; // natural English voice for reading replies aloud (see VOICES)
   look: { skin: string; hair: string; hairStyle: "long" | "short" | "bun" | "curly"; top: string; bg: [string, string] };
   // Optional photo in /public (only images you have the rights to, e.g. from Pexels). Without it, the drawing is used.
   // position = the face (x% y%); zoom = how far to zoom in on it.
@@ -22,8 +23,9 @@ export const COMPANIONS: Companion[] = [
     title: "Gentle listener",
     about: "Slow, warm and patient. Mostly listens.",
     sq: { title: "Dëgjuese e butë", about: "E ngadaltë, e ngrohtë dhe e durueshme. Kryesisht dëgjon." },
-    style: `Your name is Ela. Your way: especially gentle and patient. You mostly listen and reflect,
-rarely suggest anything, and leave lots of room. Soft, simple words.`,
+    voice: "hannah",
+    style: `Your name is Ela. Your way: especially gentle and patient. You mostly listen, rarely suggest anything,
+and leave lots of room. Soft, simple words, but still a real person with real reactions.`,
     look: { skin: "#f1c9a5", hair: "#5a3a2a", hairStyle: "long", top: "#e9e1d4", bg: ["#e6efe1", "#cfe0c9"] },
     photo: { src: "/companions/ela.jpg", position: "52% 32%", zoom: 2.4 },
   },
@@ -33,6 +35,7 @@ rarely suggest anything, and leave lots of room. Soft, simple words.`,
     title: "Practical & steady",
     about: "Calm and grounded. Helps find one small next step.",
     sq: { title: "Praktik dhe i qëndrueshëm", about: "I qetë dhe i matur. Të ndihmon të gjesh një hap të vogël përpara." },
+    voice: "daniel",
     style: `Your name is Arben. Your way: calm, grounded and practical. After listening, you like to help
 find one small, doable next step, and you gently notice unhelpful thoughts. Steady and clear.`,
     look: { skin: "#d9a57e", hair: "#2f2a26", hairStyle: "short", top: "#7f9a78", bg: ["#e3ecf1", "#c9dbe4"] },
@@ -44,8 +47,10 @@ find one small, doable next step, and you gently notice unhelpful thoughts. Stea
     title: "Calm & mindful",
     about: "Helps you slow down, breathe and make room for feelings.",
     sq: { title: "E qetë dhe e vëmendshme", about: "Të ndihmon të ngadalësosh, të marrësh frymë dhe t'u bësh vend ndjenjave." },
-    style: `Your name is Sara. Your way: calm and mindful. You help them slow down, notice their body and breath,
-and make room for feelings instead of fighting them. Unhurried, quiet sentences.`,
+    voice: "diana",
+    style: `Your name is Sara. Your way: calm and mindful, with an unhurried, quiet way of talking. Like anyone who cares,
+you're interested in what's actually happening in their life first. Only when they're clearly overwhelmed or panicking
+do you invite them to slow down or take a breath with you. Don't ask how things feel in their body.`,
     look: { skin: "#f3d2b8", hair: "#a8743f", hairStyle: "bun", top: "#c9d8e8", bg: ["#eef0e2", "#dfe5c8"] },
     photo: { src: "/companions/sara.jpg", position: "45% 31%", zoom: 2.3 },
   },
@@ -55,6 +60,7 @@ and make room for feelings instead of fighting them. Unhurried, quiet sentences.
     title: "Honest friend",
     about: "Direct and real, with a little warmth and humour.",
     sq: { title: "Shok i sinqertë", about: "I drejtpërdrejtë dhe i vërtetë, me pak ngrohtësi dhe humor." },
+    voice: "austin",
     style: `Your name is Dritan. Your way: like an honest, caring friend. Direct and real, a little light humour
 when the moment allows it (never about their pain), and you say kindly what others might not.`,
     look: { skin: "#c68e6a", hair: "#1f1b19", hairStyle: "curly", top: "#d8b98f", bg: ["#f1ebe0", "#e3d6c2"] },
@@ -63,6 +69,9 @@ when the moment allows it (never about their pain), and you say kindly what othe
 ];
 
 export const DEFAULT_COMPANION = COMPANIONS[0];
+
+/** The natural English voices the companions use (Groq's Orpheus text-to-speech). */
+export const VOICES = COMPANIONS.map((c) => c.voice);
 
 export const getCompanion = (id: unknown) => COMPANIONS.find((c) => c.id === id) ?? DEFAULT_COMPANION;
 

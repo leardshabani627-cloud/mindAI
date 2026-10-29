@@ -14,14 +14,15 @@ export function llmConfig() {
 
 type Message = { role: "system" | "user" | "assistant"; content: string };
 
-/** POST to the provider's chat endpoint. Returns the raw Response. */
-export function chatRequest(messages: Message[], stream: boolean) {
+/** POST to the provider's chat endpoint. Returns the raw Response.
+ *  `temperature` (optional) makes wording more varied; leave it out for steady tasks like summaries. */
+export function chatRequest(messages: Message[], stream: boolean, temperature?: number) {
   const cfg = llmConfig();
   if (!cfg) throw new Error("LLM is not configured");
   return fetch(`${cfg.baseUrl}/chat/completions`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${cfg.apiKey}` },
-    body: JSON.stringify({ model: cfg.model, stream, messages, reasoning_effort: cfg.reasoningEffort }),
+    body: JSON.stringify({ model: cfg.model, stream, messages, temperature, reasoning_effort: cfg.reasoningEffort }),
     signal: AbortSignal.timeout(45_000), // fail with a clear error instead of hanging for minutes
   });
 }

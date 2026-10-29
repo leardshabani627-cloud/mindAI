@@ -13,6 +13,7 @@ type ChatMessage = { role: "user" | "assistant"; content: string };
 const MAX_MESSAGES = 40;
 const MAX_CHARS = 4000;
 const SUMMARIES_IN_PROMPT = 5;
+const CHAT_TEMPERATURE = 0.85; // natural, varied wording in conversation
 // Control characters and stray special symbols the model occasionally emits; never meant to be shown.
 const HIDDEN_CHARS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\uE000-\uF8FF\uFFFD]/g;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -93,10 +94,17 @@ export async function POST(req: Request) {
   system = withMemory(system, summaries);
   system = withContacts(system, settings);
   system = withSafetyPlan(system, settings.safety_plan);
+  // Models fall into "reflect, then ask" every turn. After a question, nudge toward a plain reaction instead.
+  const lastReply = [...messages].reverse().find((m) => m.role === "assistant")?.content.trim() ?? "";
+  if (lastReply.endsWith("?")) {
+    system += "\n\nYour previous reply ended with a question. This time, don't ask one: just react like a person would, " +
+      "normalise, or offer a short hunch, and let them keep talking. (Safety questions are the exception.)";
+  }
 
   const upstream = await chatRequest(
     [{ role: "system", content: system }, ...messages.slice(-MAX_MESSAGES)],
     true,
+    CHAT_TEMPERATURE,
   ).catch((err) => {
     console.error("Could not reach the model:", err);
     return null;
@@ -135,7 +143,7 @@ export async function POST(req: Request) {
           const data = line.slice(5).trim();
           if (!data || data === "[DONE]") continue;
           try {
-            const text = JSON.parse(data).choices?.[0]?.delta?.content?.replace(HIDDEN_CHARS, "");
+            const text = JSON.parse(data).choices?.[0]?.delta?.content?.replace(HIDDEN_CHARS, "").replace(/\s*[—–]\s*/g, ", ");
             if (text) {
               reply += text;
               controller.enqueue(encoder.encode(text));
