@@ -1,5 +1,6 @@
 import { GUEST_DAILY_MESSAGES } from "@/lib/guest";
 import { chatRequest, llmConfig } from "@/lib/llm";
+import { assessRisk } from "@/lib/risk";
 import { listSummaries, saveMessage, summarizeStaleSessions } from "@/lib/memory";
 import { getSettings } from "@/lib/settings";
 import { isGuest, serverClient, unauthorized } from "@/lib/supabase/server";
@@ -35,15 +36,26 @@ function isValid(messages: unknown): messages is ChatMessage[] {
 
 type Supabase = Awaited<ReturnType<typeof serverClient>>["supabase"];
 
-/** How many chat messages a guest has left today (their own rows, through RLS). */
-async function guestMessagesLeft(supabase: Supabase) {
-  const { count, error } = await supabase
-    .from("messages")
-    .select("id", { count: "exact", head: true })
-    .eq("role", "user")
-    .gte("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
-  if (error) console.error("Guest message count failed:", error.message);
-  return Math.max(0, GUEST_DAILY_MESSAGES - (count ?? 0));
+// Guest limits use tamper-proof counters in the database (see the guest_usage_counter and
+// all_guests_daily_cap migrations): one per guest per day, and one for all guests together.
+// The limits themselves are set in the database, so nobody can pass in their own.
+
+/** Messages this guest has left today, and whether guest chat is full for everyone today. */
+async function guestStatus(supabase: Supabase) {
+  const { data, error } = await supabase.rpc("guest_chat_status");
+  if (error) console.error("Guest usage check failed:", error.message);
+  return { left: typeof data?.left === "number" ? data.left : GUEST_DAILY_MESSAGES, full: data?.full === true };
+}
+
+/** Counts this message. Returns how many are left after it, -1 at the guest's own limit,
+ *  -2 when all guests together reached today's cap, or null if the check failed. */
+async function useGuestMessage(supabase: Supabase) {
+  const { data, error } = await supabase.rpc("use_guest_message");
+  if (error) {
+    console.error("Guest usage count failed:", error.message);
+    return null;
+  }
+  return typeof data === "number" ? data : null;
 }
 
 // For the chat screen: is this a guest, and how many messages are left today.
@@ -51,7 +63,8 @@ export async function GET() {
   const { supabase, user } = await serverClient();
   if (!user) return unauthorized();
   if (!isGuest(user)) return Response.json({ guest: false, left: null });
-  return Response.json({ guest: true, left: await guestMessagesLeft(supabase), limit: GUEST_DAILY_MESSAGES });
+  const { left, full } = await guestStatus(supabase);
+  return Response.json({ guest: true, left: full ? 0 : left, full, limit: GUEST_DAILY_MESSAGES });
 }
 
 export async function POST(req: Request) {
@@ -73,9 +86,15 @@ export async function POST(req: Request) {
   const guest = isGuest(user);
   let guestLeft: number | null = null;
   if (guest) {
-    const left = await guestMessagesLeft(supabase);
-    if (left <= 0) return new Response("Guest limit reached.", { status: 403, headers: { "X-Guest-Left": "0" } });
-    guestLeft = left - 1; // this message counts too
+    const left = await useGuestMessage(supabase);
+    // If the counter can't be reached, don't let guests through uncounted.
+    if (left === null) return new Response("Something went wrong. Please try again.", { status: 503 });
+    if (left < 0) {
+      const headers: Record<string, string> = { "X-Guest-Left": "0" };
+      if (left === -2) headers["X-Guests-Full"] = "1"; // everyone's guest chats are used up for today
+      return new Response("Guest limit reached.", { status: 403, headers });
+    }
+    guestLeft = left;
   }
 
   await saveMessage(supabase, sessionId, "user", messages[messages.length - 1].content);
@@ -84,9 +103,11 @@ export async function POST(req: Request) {
   // so their summaries are part of what the companion knows about me. Guests have no memories.
   if (messages.length === 1 && !guest) await summarizeStaleSessions(supabase, user.id, sessionId);
 
-  const [summaries, settings] = await Promise.all([
+  // The safety check runs alongside loading memories and settings, so it adds almost no wait.
+  const [summaries, settings, risk] = await Promise.all([
     guest ? Promise.resolve([]) : listSummaries(supabase, SUMMARIES_IN_PROMPT),
     getSettings(supabase),
+    assessRisk(messages),
   ]);
   // The full instructions: base prompt, chosen companion, my name, memories, contacts and safety plan.
   let system = withCompanion(COMPANION_PROMPT, getCompanion(companion));
@@ -94,9 +115,23 @@ export async function POST(req: Request) {
   system = withMemory(system, summaries);
   system = withContacts(system, settings);
   system = withSafetyPlan(system, settings.safety_plan);
-  // Models fall into "reflect, then ask" every turn. After a question, nudge toward a plain reaction instead.
+  // The second crisis check found risk: the safety steps come first in this reply.
+  if (risk === "high") {
+    system +=
+      "\n\nIMPORTANT, for this reply: their latest message may mean they are thinking about suicide or self-harm, " +
+      "or are in danger. Follow your safety steps now, warmly and calmly: acknowledge what they said, then ask " +
+      "directly and kindly whether they're thinking about ending their life or hurting themselves, and whether " +
+      "they're safe right now. Never mention any check, system or flag.";
+  } else if (risk === "concern") {
+    system +=
+      "\n\nFor this reply: they may be feeling hopeless or like a burden. Take it seriously and stay with it. " +
+      "Gently acknowledge it, and if it fits, kindly ask how heavy it gets, for example whether they ever have " +
+      "thoughts of not wanting to be here. Never mention any check, system or flag.";
+  }
+  // Models fall into "reflect, then ask" every turn. After a question, nudge toward a plain reaction instead
+  // (never when there's risk: then a direct, caring question is exactly right).
   const lastReply = [...messages].reverse().find((m) => m.role === "assistant")?.content.trim() ?? "";
-  if (lastReply.endsWith("?")) {
+  if (lastReply.endsWith("?") && risk !== "high" && risk !== "concern") {
     system += "\n\nYour previous reply ended with a question. This time, don't ask one: just react like a person would, " +
       "normalise, or offer a short hunch, and let them keep talking. (Safety questions are the exception.)";
   }
@@ -164,6 +199,7 @@ export async function POST(req: Request) {
       "Content-Type": "text/plain; charset=utf-8",
       "Cache-Control": "no-store",
       ...(guestLeft !== null && { "X-Guest-Left": String(guestLeft) }),
+      ...(risk && { "X-Risk": risk }), // lets the chat show the help banner
     },
   });
 }

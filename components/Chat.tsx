@@ -9,7 +9,7 @@ import TopMenu, { menuItemClass } from "@/components/TopMenu";
 import Waveform from "@/components/Waveform";
 import { looksLikeCrisis } from "@/lib/crisis";
 import { UPGRADE_PATH } from "@/lib/guest";
-import { takeStartVoice } from "@/lib/pending";
+import { takeStartLive, takeStartText, takeStartVoice } from "@/lib/pending";
 import type { Settings } from "@/lib/settings";
 import { formatSeconds, useVoiceInput } from "@/lib/useVoiceInput";
 import { speak, stopSpeaking } from "@/lib/voice";
@@ -44,6 +44,8 @@ const en = {
   limitText: "Create a free account to keep talking now. It's free, and this conversation comes with you.",
   create: "Create a free account",
   limitLater: "Or come back tomorrow.",
+  fullTitle: "Guest chats are full for today",
+  fullText: "So many people tried Mind today that guest chats are paused until tomorrow. A free account lets you keep talking now.",
   typing: (name: string) => `${name} is typing…`,
   seen: "Seen",
   live: "Live",
@@ -84,6 +86,8 @@ const COPY = {
     limitText: "Krijo një llogari falas për të vazhduar tani. Është falas, dhe kjo bisedë vjen me ty.",
     create: "Krijo një llogari falas",
     limitLater: "Ose kthehu nesër.",
+    fullTitle: "Bisedat si mysafir janë plot për sot",
+    fullText: "Sot e provuan Mind shumë njerëz, ndaj bisedat si mysafir janë pushuar deri nesër. Me një llogari falas mund të vazhdosh tani.",
     typing: (name: string) => `${name} po shkruan…`,
     seen: "Parë",
     live: "Live",
@@ -174,6 +178,7 @@ export default function Chat() {
   const [crisis, setCrisis] = useState(false);
   const [companion, setCompanion] = useState<Companion>(DEFAULT_COMPANION); // chosen on the home screen
   const [guestLeft, setGuestLeft] = useState<number | null>(null); // messages left today; null for accounts
+  const [guestsFull, setGuestsFull] = useState(false); // all guests together used up today's guest chats
   const [live, setLive] = useState(false); // hands-free live talk: listen, answer aloud, listen again
   const [speaking, setSpeaking] = useState(false); // a reply is being read aloud
   const liveRef = useRef(false);
@@ -271,8 +276,14 @@ export default function Chat() {
   // Opened from the home screen: start the mic, or focus the box, as soon as the chat is ready.
   useEffect(() => {
     if (!loaded) return;
+    // Opened from the home screen: listen, go live, or send what was typed there.
     if (takeStartVoice()) voice.toggle();
-    else inputRef.current?.focus();
+    else if (takeStartLive()) startLive();
+    else {
+      const text = takeStartText();
+      if (text) send(text);
+      else inputRef.current?.focus();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded]);
 
@@ -297,7 +308,10 @@ export default function Chat() {
     fetch("/api/chat")
       .then((r) => (r.ok ? r.json() : null))
       .then((info) => {
-        if (info?.guest) setGuestLeft(info.left);
+        if (info?.guest) {
+          setGuestLeft(info.left);
+          setGuestsFull(info.full === true);
+        }
       })
       .catch(() => {});
   }, []);
@@ -383,6 +397,7 @@ export default function Chat() {
         typing.current.done = true;
         setBusy(false);
         setGuestLeft(0);
+        setGuestsFull(res.headers.get("X-Guests-Full") === "1");
         setMessages(messages);
         setInput(text);
         if (liveRef.current) stopLive();
@@ -390,6 +405,11 @@ export default function Chat() {
       }
       const left = res.headers.get("X-Guest-Left");
       if (left !== null) setGuestLeft(Number(left));
+      // The server's safety check heard danger, even where the phrase list didn't: show the help banner.
+      if (res.headers.get("X-Risk") === "high") {
+        setCrisis(true);
+        if (liveRef.current) stopLive();
+      }
       if (!res.ok || !res.body) {
         failure = res.status === 429 ? t.pause : res.status === 502 ? t.unreachable : t.generic;
         throw new Error(failure);
@@ -526,7 +546,7 @@ export default function Chat() {
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <TopMenu current="/chat">
+            <TopMenu current="/chat" helpTone="onGreen">
               <button onClick={finishSession} className={menuItemClass}>
                 {t.endAndNew}
               </button>
@@ -607,7 +627,7 @@ export default function Chat() {
                     {m.content}
                   </p>
                   {(time || seen) && (
-                    <span className="mt-1 px-1 text-[11px] text-white/70">
+                    <span className="mt-1 px-1 text-xs text-white/85">
                       {time}
                       {seen && <span className="animate-rise [animation-delay:600ms]"> · {t.seen}</span>}
                     </span>
@@ -636,7 +656,7 @@ export default function Chat() {
                     </p>
                   );
                 })}
-                {!writing && time && m.content && <span className="px-1 text-[11px] text-white/70">{time}</span>}
+                {!writing && time && m.content && <span className="px-1 text-xs text-white/85">{time}</span>}
               </div>
             );
           })}
@@ -698,8 +718,8 @@ export default function Chat() {
 
         {guestLeft === 0 && (
           <div className="relative mx-3 mt-2 rounded-3xl border border-white/70 bg-white/85 p-5 text-center text-[var(--fg)] shadow-lg backdrop-blur-xl sm:mx-4">
-            <p className="text-lg tracking-tight">{t.limitTitle}</p>
-            <p className="mt-1 text-sm text-[var(--muted)]">{t.limitText}</p>
+            <p className="text-lg tracking-tight">{guestsFull ? t.fullTitle : t.limitTitle}</p>
+            <p className="mt-1 text-sm text-[var(--muted)]">{guestsFull ? t.fullText : t.limitText}</p>
             <Link
               href={UPGRADE_PATH}
               className="mt-4 inline-flex rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm text-[var(--on-accent)] hover:bg-[var(--accent-strong)]"
