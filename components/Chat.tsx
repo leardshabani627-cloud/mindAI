@@ -144,6 +144,8 @@ const store = {
 const plainText = (text: string) =>
   text
     .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\uE000-\uF8FF\uFFFD]/g, "")
+    .replace(/\s*[—–]\s*/g, ", ")
+    .replace(/\s+,/g, ",")
     .replace(/\*\*(.+?)\*\*/g, "$1")
     .replace(/(^|\s)[*_](\S[^*_]*?)[*_](?=\s|$|[.,!?])/g, "$1$2")
     .replace(/^#{1,6}\s+/gm, "")
@@ -408,7 +410,7 @@ export default function Chat() {
       // Read the reply aloud in live talk (or when read-aloud is on), then live talk listens again.
       if (reply && (liveRef.current || speakAloud)) {
         setSpeaking(true);
-        if (!speak(plainText(reply), () => setSpeaking(false))) {
+        if (!speak(plainText(reply), () => setSpeaking(false), companion.voice)) {
           setSpeaking(false);
           setVoiceNote(t.noVoice);
         }
