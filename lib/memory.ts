@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { complete, llmConfig } from "@/lib/llm";
-import { SUMMARY_PROMPT } from "@/prompts/summary";
+import { FOR_YOU_PROMPT, SUMMARY_PROMPT } from "@/prompts/summary";
 
 // Server only. Every function takes the signed-in user's Supabase client
 // (see lib/supabase/server.ts), so Row Level Security limits it to that user's rows.
@@ -8,10 +8,31 @@ import { SUMMARY_PROMPT } from "@/prompts/summary";
 export type Summary = {
   id: string;
   session_id: string;
-  summary: string;
+  summary: string; // about the person ("They felt…"): what the companion reads
+  summary_you: string | null; // the same note written to them ("You felt…"): what the person sees
   themes: string[];
   created_at: string;
 };
+
+const BACKFILL_AT_ONCE = 5; // older notes rewritten "to you" per visit (each is one small AI request)
+
+/** Older notes only have the third-person version: write the "to you" one for the newest few, and keep it. */
+export async function fillForYou(supabase: SupabaseClient, summaries: Summary[]): Promise<Summary[]> {
+  if (!llmConfig()) return summaries;
+  const missing = summaries.filter((s) => !s.summary_you).slice(0, BACKFILL_AT_ONCE);
+  for (const s of missing) {
+    try {
+      const text = (await complete(FOR_YOU_PROMPT, s.summary)).trim();
+      if (!text) continue;
+      const { error } = await supabase.from("session_summaries").update({ summary_you: text }).eq("id", s.id);
+      if (!error) s.summary_you = text;
+    } catch (err) {
+      console.error("fillForYou failed:", err instanceof Error ? err.message : err);
+      break; // likely the rate limit: try the rest next time
+    }
+  }
+  return summaries;
+}
 
 export const MIN_USER_MESSAGES = 2; // keep in sync with stale_sessions() in the SQL migration
 export const IDLE_MINUTES = 20;
@@ -64,15 +85,16 @@ export async function deleteAllData(supabase: SupabaseClient, userId: string): P
   return ok;
 }
 
-function parseSummary(text: string): { summary: string; themes: string[] } {
+function parseSummary(text: string): { summary: string; forYou: string | null; themes: string[] } {
   try {
     const json = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] ?? "");
     if (typeof json.summary === "string" && json.summary.trim()) {
       const themes = Array.isArray(json.themes) ? json.themes.filter((t: unknown) => typeof t === "string") : [];
-      return { summary: json.summary.trim(), themes: themes.slice(0, 4) };
+      const forYou = typeof json.for_you === "string" && json.for_you.trim() ? json.for_you.trim() : null;
+      return { summary: json.summary.trim(), forYou, themes: themes.slice(0, 4) };
     }
   } catch {}
-  return { summary: text.trim(), themes: [] }; // model ignored the JSON format: keep the text anyway
+  return { summary: text.trim(), forYou: null, themes: [] }; // model ignored the JSON format: keep the text anyway
 }
 
 export type SummaryResult = "saved" | "already-saved" | "too-short" | "failed";
@@ -99,13 +121,13 @@ export async function summarizeSession(supabase: SupabaseClient, userId: string,
     if (!messages || messages.filter((m) => m.role === "user").length < MIN_USER_MESSAGES) return "too-short";
 
     const transcript = messages.map((m) => `${m.role === "user" ? "User" : "Mind"}: ${m.content}`).join("\n\n");
-    const { summary, themes } = parseSummary(await complete(SUMMARY_PROMPT, transcript));
+    const { summary, forYou, themes } = parseSummary(await complete(SUMMARY_PROMPT, transcript));
     if (!summary) return "failed";
 
     // ignoreDuplicates: if two triggers race, the second insert is simply dropped.
     const { error } = await supabase
       .from("session_summaries")
-      .upsert({ user_id: userId, session_id: sessionId, summary, themes }, { onConflict: "session_id", ignoreDuplicates: true });
+      .upsert({ user_id: userId, session_id: sessionId, summary, summary_you: forYou, themes }, { onConflict: "session_id", ignoreDuplicates: true });
     if (error) throw error;
     return "saved";
   } catch (err) {

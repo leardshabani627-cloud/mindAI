@@ -165,7 +165,7 @@ export default function LoginPage() {
       <GoogleButton />
       <GuestButton />
 
-      <p className="mt-8 text-center text-sm text-[#8a8f8a]">
+      <p className="mt-8 text-center text-sm text-[#626a64]">
         {t.noAccount}{" "}
         <Link href="/signup" className={authLink}>
           {t.register}

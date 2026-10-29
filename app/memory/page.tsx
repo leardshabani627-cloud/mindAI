@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import HelpButton from "@/components/HelpButton";
 import { useEffect, useState } from "react";
 import { locale, useCopy, useLang } from "@/lib/i18n";
 
@@ -24,7 +25,7 @@ const COPY = {
   } satisfies typeof en,
 };
 
-type Summary = { id: string; summary: string; themes: string[]; created_at: string };
+type Summary = { id: string; summary: string; summary_you?: string | null; themes: string[]; created_at: string };
 
 export default function MemoryPage() {
   const t = useCopy(COPY);
@@ -49,9 +50,12 @@ export default function MemoryPage() {
     <main className="mx-auto min-h-dvh max-w-2xl px-4 pb-10">
       <header className="flex items-center justify-between py-4">
         <span className="text-xl tracking-wide">{t.title}</span>
-        <Link href="/" className="text-[var(--muted)] hover:text-[var(--fg)]">
-          {t.home}
-        </Link>
+        <div className="flex items-center gap-3">
+          <HelpButton />
+          <Link href="/" className="text-[var(--muted)] hover:text-[var(--fg)]">
+            {t.home}
+          </Link>
+        </div>
       </header>
 
       <p className="mb-6 text-[var(--muted)]">
@@ -71,7 +75,7 @@ export default function MemoryPage() {
                 {t.delete}
               </button>
             </div>
-            <p className="whitespace-pre-wrap">{s.summary}</p>
+            <p className="whitespace-pre-wrap">{s.summary_you || s.summary}</p>
             {s.themes.length > 0 && (
               <p className="mt-3 flex flex-wrap gap-2 text-sm">
                 {s.themes.map((t) => (

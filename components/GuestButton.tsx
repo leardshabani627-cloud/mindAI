@@ -65,7 +65,7 @@ export default function GuestButton() {
       >
         {busy ? t.starting : t.label}
       </button>
-      <p className="mt-2 text-center text-xs text-[#8a8f8a]">{error || t.hint(GUEST_DAILY_MESSAGES)}</p>
+      <p className="mt-2 text-center text-xs text-[#626a64]">{error || t.hint(GUEST_DAILY_MESSAGES)}</p>
     </div>
   );
 }

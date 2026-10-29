@@ -167,7 +167,7 @@ export default function SignupPage() {
       {/* Google also needs the two promises above ticked first. */}
       <GoogleButton disabled={!adult || !understands} />
 
-      <p className="mt-8 text-center text-sm text-[#8a8f8a]">
+      <p className="mt-8 text-center text-sm text-[#626a64]">
         {t.haveAccount}{" "}
         <Link href="/login" className={authLink}>
           {t.signIn}

@@ -1,11 +1,17 @@
 @import "tailwindcss";
 
+/* The smallest text in the app is 13px (Tailwind's text-xs is 12px by default). */
+@theme {
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.15rem;
+}
+
 /* Soft sage palette, matched to the design. Every color in the app comes from these tokens. */
 :root {
   color-scheme: light;
   --bg: #eef1ee;
   --fg: #1d221e;
-  --muted: #868d88;
+  --muted: #626a64; /* secondary text: about 5.5:1 on white, above the 4.5:1 accessibility minimum */
   --card: rgba(255, 255, 255, 0.9);
   --card-solid: #ffffff;
   --glass-border: rgba(255, 255, 255, 0.92);

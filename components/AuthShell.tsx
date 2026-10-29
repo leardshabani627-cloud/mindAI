@@ -56,7 +56,7 @@ export const authLink = "text-[#111] underline-offset-2 hover:underline";
 /** The thin line with "or" in the middle. */
 export function OrDivider({ label }: { label: string }) {
   return (
-    <div className="my-5 flex items-center gap-3 text-xs text-[#8a8f8a]">
+    <div className="my-5 flex items-center gap-3 text-xs text-[#626a64]">
       <span className="h-px flex-1 bg-[#d9dcd7]" />
       {label}
       <span className="h-px flex-1 bg-[#d9dcd7]" />
