@@ -1,85 +1,44 @@
 # Mind
 
-A calm, private space to talk to an AI companion, in English or Albanian. Next.js, TypeScript, Tailwind, Supabase.
+**A calm, private space to talk.** · *Një hapësirë e qetë dhe private për të folur.*
 
-A language switch (EN | SQ) changes the whole interface between English and Albanian.
+Mind is a web app for the in-between moments: when you want to talk something through, notice how you're doing, or calm down for two minutes. You talk with an AI companion that listens like a good therapist would: short, warm, curious about your life, never preachy. Everything is private to you, and the whole app works in English and Albanian.
 
-Features: streaming chat with four AI companions (text or voice), long-term memory (session summaries), daily mood check-in with "what's affecting you" tags and Insights, a private journal, a 2-minute calm-down tool (breathing and 5-4-3-2-1 grounding), a personal safety plan, weekly letters from your companion, a crisis banner with your own contacts, "delete all my data", and a login so only you can see your data.
+## Features
 
-## Environment variables
+- **Talk, by text or voice.** Four AI companions with their own way of talking, replies that feel like a real conversation, and a hands-free *Live* mode, like a call.
+- **Memory.** After a conversation, Mind keeps a short note of what mattered, so the next talk picks up where you left off. You can read and delete every note.
+- **Daily check-in.** Five faces and a few tags ("sleep", "work"…), with your week at a glance and *Insights* that show what tends to lift or lower your mood.
+- **Private journal.** Your own writing, with gentle prompts. Never sent to the AI.
+- **Calm tools.** Guided breathing and the 5-4-3-2-1 grounding exercise, available any time.
+- **Safety first.** A personal safety plan, a *Help* button on every page with emergency numbers for your country, and a check that notices when a message may signal danger.
+- **Weekly letters** from your companion about your week.
+- **English | Shqip** with one switch, and a guest mode to try it without an account.
 
-Copy `.env.example` to `.env.local` for local use. On Vercel, add the same names under **Project Settings → Environment Variables**.
+## Privacy and safety
 
-| Variable | Where it runs | What it is |
-| --- | --- | --- |
-| `LLM_API_KEY` | server only | Key for your AI provider. Free option: Groq ([console.groq.com/keys](https://console.groq.com/keys)). The same key is used for voice transcription (Whisper). |
-| `LLM_BASE_URL` | server only | Any OpenAI-compatible endpoint. Groq: `https://api.groq.com/openai/v1`. |
-| `LLM_MODEL` | server only | Model name, e.g. `openai/gpt-oss-120b` (Groq). Check your provider's current model list. |
-| `LLM_REASONING_EFFORT` | server only | Optional. For reasoning models like Groq's `openai/gpt-oss-120b`, `low` keeps replies quick and natural. Leave it out for providers that don't support it. |
-| `NEXT_PUBLIC_SUPABASE_URL` | browser + server | Supabase project URL, e.g. `https://abcd.supabase.co` (no `/rest/v1/`). |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | browser + server | Supabase **anon / publishable** key. Public by design; Row Level Security protects the data. |
-| `RISK_MODEL` | server only | Optional. The small model for the second crisis check (default `openai/gpt-oss-20b` on Groq; it has its own rate limit, separate from the chat model). |
-| `TTS_MODEL` | server only | Optional. Natural English voice for reading replies aloud. Default: Groq's `canopylabs/orpheus-v1-english` (accept its terms once in the Groq console). Albanian replies use the device's own voice. |
-| `APP_LOCK_SECRET` | server only | Optional, for the app lock. Any long random string (32+ characters), kept secret. Without it, the app lock option is hidden. |
+- Only you can see your data. Every table is protected at the database level, not just in the app.
+- Your journal is never sent to the AI. Conversations are sent to the AI provider only to write replies.
+- You can delete everything, at any time, from Settings.
+- Mind is an **AI companion, not a therapist, doctor or emergency service**. It never diagnoses. If you're in danger, call your local emergency number or someone you trust.
 
-Never add the Supabase `service_role` / secret key. This app doesn't need it, and it would bypass all privacy rules.
+## Built with
 
-## Setup
+Next.js · TypeScript · Tailwind CSS · Supabase (auth and Postgres with Row Level Security) · an OpenAI-compatible AI provider (Groq by default) for chat, voice and speech.
 
-1. **Supabase project.** Create a free one at [supabase.com](https://supabase.com).
-2. **Database.** In the SQL editor, run the files in `supabase/migrations/` in order:
-   1. `20261026000000_memory.sql`
-   2. `20261026000001_mood.sql`
-   3. `20261026000002_privacy.sql` (owner columns and Row Level Security)
-   4. `20261027000000_safety_plan.sql`
-   5. `20261027000001_journal.sql`
-   6. `20261027000002_mood_tags.sql`
-   7. `20261027000003_weekly_letters.sql`
-   8. `20261027000004_onboarding.sql`
-   9. `20261028000000_guests.sql` (guests can't save journal, mood, memories or letters, and inactive guests are removed after 30 days)
-   10. `20261029000000_reminder_and_app_lock.sql` (daily check-in reminder, and the optional 4-digit app lock)
-   11. `20261029000001_guest_usage_counter.sql` (a tamper-proof daily message counter for guests)
-   12. `20261029000002_all_guests_daily_cap.sql` (a daily cap for all guests together, 300 messages; change it in `guest_limits()`)
-   13. `20261029000003_memory_for_you.sql` (each memory also written to the person: "You felt…")
-3. **Sign-ups.** Authentication → Sign In / Providers → Email: turn **on** "Allow new users to sign up" and keep **"Confirm email"** on. People then create their own account at `/signup` and get a short welcome on first sign-in.
-4. **Links in emails.** Authentication → URL Configuration: set **Site URL** to your app's address (e.g. `http://localhost:3001`, later your Vercel URL) and add `<your address>/auth/callback` under **Redirect URLs** (one per address you use).
-5. **Email sending.** Supabase's built-in email only reaches your project's team members and a few emails per hour. Before inviting other people, add your own SMTP (Authentication → Emails → SMTP Settings), for example a free [Resend](https://resend.com) account.
-   - *Optional, "Continue as guest":* Authentication → Sign In / Providers: turn on **Allow anonymous sign-ins**. A guest who makes an account gets the "Change email address" email; with custom SMTP, put `{{ .Token }}` in that template (like `confirm-signup.html`) so they can type the code. A link also works: it comes back through `/auth/callback` to choose a password. Until then the button explains that guest visits aren't switched on yet. Before going public, also turn on a CAPTCHA (Authentication → Attack Protection), since anyone can start a guest visit.
-   - *Optional, "Continue with Google":* Authentication → Sign In / Providers → **Google**: turn it on and paste a Client ID and Secret from Google Cloud (APIs & Services → Credentials → OAuth client, type Web application, with `https://<your-project>.supabase.co/auth/v1/callback` as the authorized redirect URI). Until then the button explains that Google isn't switched on yet.
-6. **Keys.** Project Settings → API: copy the URL and the anon/publishable key into `.env.local`.
-7. **Run it.**
+## Run it yourself
+
+1. Create a free [Supabase](https://supabase.com) project and run the SQL files in `supabase/migrations/`, in order, in its SQL editor.
+2. Copy `.env.example` to `.env.local` and fill it in. Every setting is explained in that file.
+3. Install and start:
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open http://localhost:3000, create your account at `/signup` (or sign in), and follow the short welcome.
+Then open the address shown in the terminal and create your account.
 
-## Deploy to Vercel
+---
 
-1. Put the project in a Git repository and push it. `.env.local` is already git-ignored.
-2. In Vercel, **Add New → Project**, import the repository (framework: Next.js, nothing to change).
-3. Add the five environment variables above, then deploy.
-4. Supabase → Authentication → URL Configuration: set **Site URL** to your Vercel URL.
-
-## Privacy and safety
-
-- Every table has Row Level Security: a signed-in user can only read and write their own rows, and logged-out visitors get nothing. Every page and API route also requires a login.
-- AI keys stay on the server. The browser only talks to this app's own API routes.
-- **Emergency numbers:** the Help panel and the crisis banner show tap-to-call buttons for the official emergency services (police, ambulance, fire) of the person's country, guessed from the device and changeable in the panel. The list is in `lib/emergency.ts`: only official public services, checked before adding a country. Crisis helplines are not built in (they change often); each person adds their own.
-- **Settings** lets you enter your own trusted people and crisis resources. They appear in a gentle banner when a message may signal danger, and the companion can point to them. Two checks run: a phrase list in the browser (`lib/crisis.ts`) and, on the server, a small AI model that reads each message against a safety policy (`prompts/risk.ts`, `lib/risk.ts`) and catches indirect signs too ("everyone would be better off without me"). When it finds risk, the companion is told to follow its safety steps in that reply. A **Help** button on every page opens the person's own contacts, crisis lines, safety plan and a breathing exercise. Both checks can still miss things: it's a safety net, not a guarantee, and never a replacement for emergency services.
-- **Settings → Delete all my data** erases your conversations, memories, mood entries and settings. It keeps the login itself; remove that under Authentication → Users.
-- **Guests** ("Continue as guest") can chat (20 messages a day each, and 300 a day for all guests together, counted in the database so it can't be reset), use the calm tools and set contacts. Journal, mood check-ins, memories, weekly letters and the safety plan need a free account; this is enforced in the API routes and in the database. Making an account keeps everything. Guests who haven't chatted for 30 days are deleted each night by a `pg_cron` job.
-- **App lock** (Settings → Account & security): an optional 4-digit PIN to open Mind, for shared devices. The PIN is stored only as a bcrypt hash that no one can read back, 5 wrong tries mean a 5-minute wait, and it locks again after the chosen idle time. Forgot it? Sign out and sign in again with email or Google. Needs `APP_LOCK_SECRET` in the environment (see `.env.example`). It keeps out people nearby, not someone with technical access to an unlocked browser.
-- **Daily check-in reminder** (Settings → Preferences): a "How are you today?" at a chosen time if there is no check-in yet. For now it arrives while Mind is open in a tab (even in the background); reminders with Mind fully closed need web push once the app is online.
-- Your chat text is sent to the AI provider you configure. Check their data and privacy terms, since free tiers sometimes use data for training.
-
-## Editing the companion
-
-- `prompts/companion.ts`: personality and rules.
-- `prompts/summary.ts`: how session memories are written.
-- `prompts/insights.ts`: the "What patterns do you see?" reflection.
-- `lib/crisis.ts`: phrases that trigger the banner.
-
-This is a support tool, not therapy or medical care.
+*Mind is a personal project. It is not a medical device and does not replace professional care.*

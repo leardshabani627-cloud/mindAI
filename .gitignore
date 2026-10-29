@@ -4,3 +4,7 @@ node_modules
 next-env.d.ts
 .claude
 *.tsbuildinfo
+
+# Notes for coding tools (written by next dev), not part of the app
+AGENTS.md
+CLAUDE.md
