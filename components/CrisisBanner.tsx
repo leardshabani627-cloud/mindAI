@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import EmergencyNumbers from "@/components/EmergencyNumbers";
 import { useCopy } from "@/lib/i18n";
 import { telHref } from "@/lib/phone";
 import type { SafetyPlan } from "@/lib/safetyPlan";
@@ -15,8 +16,8 @@ const en = {
   resources: "Crisis resources",
   breathe: "Breathe with me for 2 minutes →",
   plan: "Open my safety plan →",
-  noneBefore: "You haven't saved anyone yet. Call your local emergency number if you're in danger, and",
-  noneLink: "add your own contacts in Settings",
+  noneBefore: "You haven't saved anyone you trust yet.",
+  noneLink: "Add them in Settings, so they're one tap away here",
   edit: "Edit in Settings",
 };
 const COPY = {
@@ -30,13 +31,14 @@ const COPY = {
     resources: "Linjat e krizës",
     breathe: "Merr frymë me mua për 2 minuta →",
     plan: "Hap planin tim të sigurisë →",
-    noneBefore: "Nuk ke ruajtur ende askënd. Nëse je në rrezik, telefono numrin lokal të urgjencës dhe",
-    noneLink: "shto kontaktet e tua te Cilësimet",
+    noneBefore: "Nuk ke ruajtur ende askënd që i beson.",
+    noneLink: "Shtoji te Cilësimet, që të jenë një prekje larg këtu",
     edit: "Ndrysho te Cilësimet",
   } satisfies typeof en,
 };
 
 type Props = {
+  intro?: string; // replaces the opening line
   contacts: Contact[];
   resources: Contact[];
   plan?: SafetyPlan;
@@ -72,7 +74,7 @@ function List({ title, items }: { title: string; items: Contact[] }) {
 
 // Shown (softly) when a message looks like self-harm or hopelessness.
 // Every contact and resource here was entered by the user in Settings.
-export default function CrisisBanner({ contacts, resources, plan, onClose }: Props) {
+export default function CrisisBanner({ intro, contacts, resources, plan, onClose }: Props) {
   const t = useCopy(COPY);
   const reasons = plan?.reasons ?? [];
   const coping = (plan?.coping ?? []).slice(0, 2);
@@ -81,10 +83,14 @@ export default function CrisisBanner({ contacts, resources, plan, onClose }: Pro
   return (
     <div role="status" className="mb-3 rounded-2xl glass px-4 py-4 ring-1 ring-[var(--accent)]">
       <div className="flex items-start justify-between gap-3">
-        <p>{t.intro}</p>
+        <p>{intro ?? t.intro}</p>
         <button onClick={onClose} aria-label={t.close} className="text-[var(--muted)] hover:text-[var(--fg)]">
           ✕
         </button>
+      </div>
+
+      <div className="mt-3">
+        <EmergencyNumbers />
       </div>
 
       {reasons.length > 0 && (

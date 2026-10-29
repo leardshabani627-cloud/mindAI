@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import LockIcon from "@/components/LockIcon";
+import HelpButton from "@/components/HelpButton";
 import LanguageSwitch from "@/components/LanguageSwitch";
 import { useCopy } from "@/lib/i18n";
 import { useIsGuest } from "@/lib/useIsGuest";
@@ -46,14 +47,27 @@ const COPY = {
   } satisfies typeof en,
 };
 
-/** The small ⋯ menu, with the language switch. `children` adds page-specific items above the links. */
-export default function TopMenu({ children, current }: { children?: React.ReactNode; current?: string }) {
+/** The small ⋯ menu, with the language switch. `children` adds page-specific items above the links.
+ *  The "Help" button sits beside it (`help={false}` where the page already shows one). */
+export default function TopMenu({
+  children,
+  current,
+  help = true,
+  helpTone = "light",
+}: {
+  children?: React.ReactNode;
+  current?: string;
+  help?: boolean;
+  helpTone?: "light" | "onGreen";
+}) {
   const [open, setOpen] = useState(false);
   const t = useCopy(COPY);
   const guest = useIsGuest();
   const lock = useAppLock();
 
   return (
+    <div className="flex items-center gap-2">
+    {help && <HelpButton tone={helpTone} />}
     <div className="relative">
       <button
         onClick={() => setOpen((o) => !o)}
@@ -96,6 +110,7 @@ export default function TopMenu({ children, current }: { children?: React.ReactN
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 }
