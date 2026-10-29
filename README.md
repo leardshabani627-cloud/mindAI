@@ -15,6 +15,48 @@ Mind is a web app for the in-between moments: when you want to talk something th
 - **Weekly letters** from your companion about your week.
 - **English | Shqip** with one switch, and a guest mode to try it without an account.
 
+## How it works
+
+### How you use Mind
+
+```mermaid
+flowchart LR
+    A([Open Mind]) --> B{Account?}
+    B -- "Sign in" --> H["🏠 Home"]
+    B -- "Try as a guest" --> H
+    H --> T["💬 Talk<br/>text · voice · Live"]
+    H --> C["🙂 Daily check-in"]
+    H --> J["📓 Private journal"]
+    H --> K["🌿 Calm tools"]
+    H --> S["🛟 Help & safety plan"]
+    T --> M["🧠 Short memory note<br/>after each talk"]
+    M -. "remembered next time" .-> T
+    C --> I["📈 Insights"]
+    C --> L["✉️ Weekly letter"]
+    M --> L
+```
+
+### What happens when you send a message
+
+```mermaid
+sequenceDiagram
+    actor You
+    participant Mind as Mind server
+    participant AI as AI provider
+    participant Data as Your private data
+    You->>Mind: Message (typed or spoken)
+    Mind->>AI: Safety check
+    AI-->>Mind: Any sign of danger?
+    Mind->>Data: Save the message
+    Mind->>AI: Reply as your companion
+    AI-->>Mind: Reply
+    Mind-->>You: Reply, typed out like a person
+    Note over You,Mind: If there's a sign of danger, the Help panel opens<br/>and the companion gently checks that you're safe
+    Mind->>Data: After the talk, a short memory note
+```
+
+Your browser only talks to Mind's own server, never straight to the AI. Your journal never leaves your private data.
+
 ## Privacy and safety
 
 - Only you can see your data. Every table is protected at the database level, not just in the app.
