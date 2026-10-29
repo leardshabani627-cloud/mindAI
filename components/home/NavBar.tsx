@@ -3,6 +3,7 @@
 import Link from "next/link";
 import LanguageSwitch from "@/components/LanguageSwitch";
 import LockIcon from "@/components/LockIcon";
+import HelpButton from "@/components/HelpButton";
 import TopMenu from "@/components/TopMenu";
 import Wordmark from "@/components/Wordmark";
 import { useCopy } from "@/lib/i18n";
@@ -15,6 +16,8 @@ const en = {
     { href: "/calm", label: "Calm" },
     { href: "/insights", label: "Insights" },
     { href: "/memory", label: "Memory" },
+    { href: "/letters", label: "Letters" },
+    { href: "/safety-plan", label: "Safety plan" },
   ],
   you: "You",
   guest: "Guest",
@@ -32,6 +35,8 @@ const COPY = {
       { href: "/calm", label: "Qetësohu" },
       { href: "/insights", label: "Pasqyra" },
       { href: "/memory", label: "Kujtesa" },
+      { href: "/letters", label: "Letrat" },
+      { href: "/safety-plan", label: "Siguria" },
     ],
     you: "Ti",
     guest: "Mysafir",
@@ -44,7 +49,7 @@ const COPY = {
 const pill = "glass rounded-full";
 
 // Top bar: logo, page tabs, language, who is signed in, and settings.
-const ACCOUNT_ONLY = ["/journal", "/insights", "/memory"];
+const ACCOUNT_ONLY = ["/journal", "/insights", "/memory", "/letters", "/safety-plan"];
 
 export default function NavBar({ email, name: displayName, guest = false }: { email: string; name?: string | null; guest?: boolean }) {
   const t = useCopy(COPY);
@@ -57,7 +62,7 @@ export default function NavBar({ email, name: displayName, guest = false }: { em
           <Wordmark className="text-2xl" />
         </Link>
 
-        <div className={`${pill} hidden items-center gap-1 p-1 md:flex`}>
+        <div className={`${pill} hidden items-center gap-1 p-1 xl:flex`}>
           {t.tabs.map((tab) =>
             tab.href === "/" ? (
               <span key={tab.href} className="flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-4 py-1.5 text-sm text-[var(--on-accent)]">
@@ -81,6 +86,7 @@ export default function NavBar({ email, name: displayName, guest = false }: { em
       </div>
 
       <div className="flex items-center gap-2">
+        <HelpButton />
         <LanguageSwitch className="hidden sm:flex" />
         <div className="hidden items-center gap-2.5 pr-1 sm:flex">
           <span className="grid h-10 w-10 place-items-center rounded-full bg-[radial-gradient(circle_at_30%_30%,#ffffff,#c4e6d6_45%,#9fc4e8)] text-sm font-medium text-[#2a4a3a]">
@@ -101,8 +107,8 @@ export default function NavBar({ email, name: displayName, guest = false }: { em
             <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
           </svg>
         </Link>
-        <div className="md:hidden">
-          <TopMenu current="/" />
+        <div className="xl:hidden">
+          <TopMenu current="/" help={false} />
         </div>
       </div>
     </nav>

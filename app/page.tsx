@@ -1,30 +1,23 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Disclaimer from "@/components/Disclaimer";
 import { GuestBanner, GuestCover } from "@/components/Guest";
+import Greeting from "@/components/home/Greeting";
 import MemoriesCard from "@/components/home/MemoriesCard";
-import MoodCard from "@/components/home/MoodCard";
 import NavBar from "@/components/home/NavBar";
-import CompanionCard from "@/components/home/CompanionCard";
-import LetterPill from "@/components/home/LetterPill";
-import VoiceCard from "@/components/home/VoiceCard";
-import WeekCard from "@/components/home/WeekCard";
+import TalkCard from "@/components/home/TalkCard";
+import TodayCard from "@/components/home/TodayCard";
 import type { MoodEntry } from "@/components/home/week";
 import type { Settings } from "@/lib/settings";
 import { useCopy } from "@/lib/i18n";
 import { browserClient } from "@/lib/supabase/browser";
 import { COMPANION_KEY, DEFAULT_COMPANION, getCompanion, type Companion } from "@/prompts/companions";
 
-type Summary = { id: string; summary: string; themes: string[]; created_at: string };
+type Summary = { id: string; summary: string; summary_you?: string | null; themes: string[]; created_at: string };
 
 const en = {
-  greeting: "Don't worry",
-  listening: "Mind is listening…",
-  subtitle: "A calm, private space to talk.",
-  breathe: "Need a moment? Breathe with me · 2 min",
   tooShort: "That conversation is still too short to remember. Talk a little more first.",
   saveFailed: "Couldn't save it right now. Please try again in a minute.",
   saved: "Saved. Mind will remember this conversation.",
@@ -32,10 +25,6 @@ const en = {
 const COPY = {
   en,
   sq: {
-    greeting: "Mos u shqetëso",
-    listening: "Mind po të dëgjon…",
-    subtitle: "Një hapësirë e qetë dhe private për të folur.",
-    breathe: "Të duhet një moment? Merr frymë me mua · 2 min",
     tooShort: "Kjo bisedë është ende shumë e shkurtër për t'u mbajtur mend. Fol edhe pak.",
     saveFailed: "Nuk u ruajt tani. Provo përsëri pas një minute.",
     saved: "U ruajt. Mind do ta mbajë mend këtë bisedë.",
@@ -131,56 +120,35 @@ export default function Home() {
     }).catch(() => {});
   }
 
+  // What I like to be called (set in Settings). An email username isn't a greeting, so no name then.
+  const name = settings?.display_name || null;
+
   return (
-    <main className="flex min-h-dvh p-3 sm:p-4">
-      {/* The white-edged frame fills the whole window */}
+    <main className="flex min-h-dvh items-start p-3 sm:p-4">
+      {/* The white-edged frame is as tall as what's in it, with the meadow below */}
       <div className="mx-auto flex w-full max-w-[1720px] flex-col rounded-[2.5rem] border-2 border-[var(--glass-border)] p-4 sm:p-6 2xl:p-8">
         <NavBar email={email} name={settings?.display_name ?? null} guest={guest} />
         {guest && <GuestBanner />}
 
-        <div className="mt-6 grid flex-1 gap-5 lg:grid-cols-[1.12fr_1fr_1fr] lg:grid-rows-[auto_auto_1fr] lg:gap-6 lg:[grid-template-areas:'greet_mood_people'_'voice_week_people'_'voice_mem_mem']">
-          <div className="flex flex-col justify-end pb-2 lg:[grid-area:greet]">
-            <div className="animate-float mb-4 h-14 w-14 rounded-full bg-[radial-gradient(circle_at_30%_30%,#ffffff,#c4e6d6_40%,#9fc4e8_80%)] shadow-[0_18px_40px_-12px_rgba(90,140,150,0.6)] 2xl:h-20 2xl:w-20" />
-            <h1 className="text-[clamp(2.25rem,3vw,4rem)] leading-[1.1] font-normal tracking-tight">
-              {t.greeting} <span aria-hidden>👋</span>
-              <br />
-              <span className="text-[var(--muted)]">{t.listening}</span>
-            </h1>
-            <p className="mt-3 text-base text-[var(--muted)]">{t.subtitle}</p>
-            <Link
-              href="/calm"
-              className="glass mt-5 flex w-fit items-center gap-2 rounded-full px-4 py-2 text-sm transition hover:-translate-y-0.5"
-            >
-              <span className="grid h-6 w-6 place-items-center rounded-full bg-[var(--accent-soft)] text-[var(--accent)]">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <path d="M3 8h11a3 3 0 1 0-3-3M3 12h15a3 3 0 1 1-3 3M3 16h7" />
-                </svg>
-              </span>
-              {t.breathe}
-            </Link>
-            {loaded && !guest && <LetterPill companionId={companion.id} companionName={companion.name} />}
-          </div>
+        <Greeting name={name} entries={entries} guest={guest} companionId={companion.id} companionName={companion.name} />
 
-          <div className="lg:[grid-area:voice]">
-            <VoiceCard
-              hasConversation={hasConversation}
-              monthCount={summaries.filter((s) => s.created_at.slice(0, 7) === new Date().toISOString().slice(0, 7)).length}
+        {/* Three cards side by side, all the same height: talk, today, memories */}
+        <div className="mt-6 grid items-stretch gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_minmax(0,1fr)]">
+          <TalkCard
+            companion={companion}
+            onChange={chooseCompanion}
+            contacts={[...(settings?.emergency_contacts ?? []), ...(settings?.crisis_resources ?? [])]}
+          />
+
+          <GuestCover locked={guest}>
+            <TodayCard
+              entries={entries}
+              loaded={loaded}
+              onSaved={(e) => setEntries((prev) => [...prev.filter((x) => x.entry_date !== e.entry_date), e])}
             />
-          </div>
+          </GuestCover>
 
-          <div className="lg:[grid-area:mood]">
-            <GuestCover locked={guest}>
-              <MoodCard entries={entries} loaded={loaded} onSaved={(e) => setEntries((prev) => [...prev, e])} />
-            </GuestCover>
-          </div>
-
-          <div className="lg:[grid-area:week]">
-            <GuestCover locked={guest}>
-              <WeekCard entries={entries} loaded={loaded} />
-            </GuestCover>
-          </div>
-
-          <div className="lg:[grid-area:mem]">
+          <div className="min-w-0 lg:col-span-2 xl:col-span-1">
             <GuestCover locked={guest}>
               <MemoriesCard
                 summaries={summaries}
@@ -191,14 +159,6 @@ export default function Home() {
                 onSaveNow={saveConversation}
               />
             </GuestCover>
-          </div>
-
-          <div className="lg:[grid-area:people]">
-            <CompanionCard
-              companion={companion}
-              onChange={chooseCompanion}
-              contacts={[...(settings?.emergency_contacts ?? []), ...(settings?.crisis_resources ?? [])]}
-            />
           </div>
         </div>
       </div>

@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { locale, useCopy, useLang } from "@/lib/i18n";
 
-type Summary = { id: string; summary: string; themes: string[]; created_at: string };
+type Summary = { id: string; summary: string; summary_you?: string | null; themes: string[]; created_at: string };
 
-const CHIPS = ["a", "b", "c"].map((k) => ({ background: `var(--chip-${k}-bg)`, color: `var(--chip-${k}-fg)` }));
+// One calm tag colour for every row (three different ones looked random).
+const CHIPS = [0, 1, 2].map(() => ({ background: "var(--accent-soft)", color: "var(--accent-strong)" }));
 
 const firstSentence = (text: string) => text.split(/(?<=[.!?])\s/)[0];
 
@@ -44,21 +45,25 @@ const COPY = {
   } satisfies typeof en,
 };
 
-function Row({ title, chip, chipStyle, right }: { title: string; chip?: string; chipStyle: React.CSSProperties; right: React.ReactNode }) {
+function Row({ title, chip, chipStyle, meta }: { title: string; chip?: string; chipStyle: React.CSSProperties; meta: React.ReactNode }) {
   return (
-    <span className="flex items-center gap-3 py-3 text-base">
-      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[var(--accent-soft)] text-[var(--accent)]">
+    <span className="flex items-start gap-3 py-3">
+      <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[var(--accent-soft)] text-[var(--accent)]">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
           <path d="M6 3h9l4 4v14H6zM9 12h7M9 16h5" />
         </svg>
       </span>
-      <span className="min-w-0 flex-1 truncate">{title}</span>
-      {chip && (
-        <span className="hidden shrink-0 rounded-full px-3 py-0.5 text-xs sm:inline" style={chipStyle}>
-          {chip}
+      <span className="min-w-0 flex-1">
+        <span className="line-clamp-2 text-[15px] leading-snug">{title}</span>
+        <span className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
+          {chip && (
+            <span className="rounded-full px-2.5 py-0.5" style={chipStyle}>
+              {chip}
+            </span>
+          )}
+          {meta}
         </span>
-      )}
-      {right}
+      </span>
     </span>
   );
 }
@@ -104,28 +109,21 @@ export default function MemoriesCard({ summaries, loaded, hasConversation, savin
                   title={step.title}
                   chip={step.chip}
                   chipStyle={CHIPS[i]}
-                  right={<span className="w-24 shrink-0 text-right text-sm">{t.step} {i + 1}</span>}
+                  meta={<span>{t.step} {i + 1}</span>}
                 />
               </li>
             ))
-          : summaries.slice(0, 3).map((s, i) => (
+          : summaries.slice(0, 5).map((s, i) => (
               <li key={s.id} className="border-b border-[var(--line)] last:border-0">
                 <Link href="/memory">
                   <Row
-                    title={firstSentence(s.summary)}
+                    title={firstSentence(s.summary_you || s.summary)}
                     chip={s.themes[0]}
                     chipStyle={CHIPS[i % 3]}
-                    right={
-                      <>
-                        <time className="w-24 shrink-0 text-right text-sm text-[var(--muted)]">
-                          {new Date(s.created_at).toLocaleDateString(locale(lang), { month: "short", day: "numeric", year: "numeric" })}
-                        </time>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden className="shrink-0 text-[var(--muted)]">
-                          <circle cx="12" cy="5" r="1.6" />
-                          <circle cx="12" cy="12" r="1.6" />
-                          <circle cx="12" cy="19" r="1.6" />
-                        </svg>
-                      </>
+                    meta={
+                      <time>
+                        {new Date(s.created_at).toLocaleDateString(locale(lang), { month: "short", day: "numeric", year: "numeric" })}
+                      </time>
                     }
                   />
                 </Link>
