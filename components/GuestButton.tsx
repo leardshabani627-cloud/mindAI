@@ -61,7 +61,7 @@ export default function GuestButton() {
         type="button"
         onClick={go}
         disabled={busy}
-        className="w-full rounded-lg border border-[#d9dcd7] px-5 py-3 text-[15px] text-[#111] transition hover:bg-[#f6f7f5] disabled:opacity-40"
+        className="w-full rounded-lg border border-white/80 bg-white/30 px-5 py-3 text-[15px] text-[#111] transition hover:bg-white/60 disabled:opacity-40"
       >
         {busy ? t.starting : t.label}
       </button>

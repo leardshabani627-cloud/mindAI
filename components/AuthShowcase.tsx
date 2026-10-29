@@ -2,16 +2,16 @@
 
 import Portrait from "@/components/Portrait";
 import Scenery from "@/components/Scenery";
-import { useCopy } from "@/lib/i18n";
+import { useCopy, useLang } from "@/lib/i18n";
 import { serif } from "@/lib/fonts";
 import { DEFAULT_COMPANION, companionText } from "@/prompts/companions";
-import { useLang } from "@/lib/i18n";
 
 const en = {
   you: "Rough day today.",
   reply: "I'm here. Want to tell me what happened?",
   moodTitle: "Mood this week",
   moodLine: "Lighter than last week",
+  days: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
   ai: "AI companion",
   tagline: "A calm, private space to talk.",
   sub: "Talk, breathe, write, and notice what helps. Only you can see it.",
@@ -23,11 +23,30 @@ const COPY = {
     reply: "Jam këtu. Do të më tregosh çfarë ndodhi?",
     moodTitle: "Gjendja këtë javë",
     moodLine: "Më lehtë se java e kaluar",
+    days: ["Hën", "Mar", "Mër", "Enj", "Pre", "Sht", "Die"],
     ai: "Shoqërues AI",
     tagline: "Një hapësirë e qetë dhe private për të folur.",
     sub: "Fol, merr frymë, shkruaj dhe vëre çka të ndihmon. Vetëm ti e sheh.",
   } satisfies typeof en,
 };
+
+// A week of moods (0 to 1), drawn as a soft curve in the mood card.
+const WEEK = [0.42, 0.58, 0.48, 0.6, 0.82, 0.74, 0.55];
+const W = 260;
+const H = 70;
+const points = WEEK.map((v, i) => [(i / (WEEK.length - 1)) * W, H - v * H] as const);
+const line = points
+  .map(([x, y], i) => {
+    if (i === 0) return `M${x} ${y}`;
+    const [px, py] = points[i - 1];
+    const mx = (px + x) / 2;
+    return `C${mx} ${py} ${mx} ${y} ${x} ${y}`;
+  })
+  .join(" ");
+
+// Frosted white glass, the same feel as the cards inside the app.
+const glassCard =
+  "rounded-2xl border border-white/70 bg-white/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_20px_50px_-25px_rgba(20,50,30,0.55)] backdrop-blur-xl";
 
 // The right half of the sign-in screens: a quiet preview of Mind itself, over the hills.
 // Purely decorative (the same look as inside the app), not a real conversation.
@@ -37,12 +56,12 @@ export default function AuthShowcase() {
   const c = DEFAULT_COMPANION;
 
   return (
-    <aside aria-hidden className="relative hidden overflow-hidden bg-[#dfe7da] lg:block">
+    <aside aria-hidden className="relative m-3 hidden overflow-hidden rounded-[1.4rem] bg-[#dfe7da] lg:block">
       <Scenery contained />
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(150,182,128,0.4)_0%,rgba(150,182,128,0.1)_40%,transparent_55%,rgba(31,59,44,0.55)_100%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(150,182,128,0.35)_0%,rgba(150,182,128,0.08)_40%,transparent_55%,rgba(31,59,44,0.5)_100%)]" />
 
       {/* companion card */}
-      <div className="absolute top-[10%] left-[9%] flex w-64 items-center gap-3 rounded-2xl bg-white/90 p-3 shadow-[0_20px_50px_-25px_rgba(20,50,30,0.6)] backdrop-blur">
+      <div className={`${glassCard} absolute top-[10%] left-[9%] flex w-64 items-center gap-3 p-3`}>
         <span
           className="grid h-12 w-12 shrink-0 place-items-end overflow-hidden rounded-full"
           style={{ background: `linear-gradient(160deg, ${c.look.bg[0]}, ${c.look.bg[1]})` }}
@@ -51,33 +70,48 @@ export default function AuthShowcase() {
         </span>
         <span className="min-w-0">
           <span className="block text-[15px] text-[#1d221e]">{c.name}</span>
-          <span className="block truncate text-xs text-[#6b736c]">
+          <span className="block truncate text-xs text-[#5d655e]">
             {companionText(c, lang).title} · {t.ai}
           </span>
         </span>
       </div>
 
-      {/* a short chat */}
-      <div className="absolute top-[28%] right-[8%] w-[19rem] space-y-2 rounded-3xl bg-gradient-to-br from-[#6b8865] to-[#95ab8b] p-4 shadow-[0_30px_70px_-30px_rgba(20,50,30,0.7)]">
-        <p className="ml-auto w-fit rounded-2xl rounded-br-md bg-white px-3.5 py-2 text-sm text-[#1d221e]">{t.you}</p>
-        <p className="w-fit max-w-[85%] rounded-2xl rounded-bl-md border border-white/20 bg-black/15 px-3.5 py-2 text-sm text-white">
+      {/* a short chat, on sage glass */}
+      <div className="absolute top-[28%] right-[8%] w-[19rem] space-y-2 rounded-3xl border border-white/40 bg-[#6b8865]/55 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_30px_70px_-30px_rgba(20,50,30,0.7)] backdrop-blur-xl">
+        <p className="ml-auto w-fit rounded-2xl rounded-br-md bg-white/90 px-3.5 py-2 text-sm text-[#1d221e]">{t.you}</p>
+        <p className="w-fit max-w-[85%] rounded-2xl rounded-bl-md border border-white/25 bg-white/15 px-3.5 py-2 text-sm text-white">
           {t.reply}
         </p>
-        <div className="flex h-6 items-center gap-[3px] pt-1" >
+        <div className="flex h-6 items-center gap-[3px] pt-1">
           {[0.3, 0.6, 0.4, 0.9, 0.5, 0.75, 0.35, 0.8, 0.45, 0.6, 0.3, 0.7, 0.5, 0.85, 0.4, 0.6, 0.3, 0.5].map((h, i) => (
-            <span key={i} className="w-[3px] flex-1 rounded-full bg-white/80" style={{ height: `${h * 100}%` }} />
+            <span key={i} className="w-[3px] flex-1 rounded-full bg-white/85" style={{ height: `${h * 100}%` }} />
           ))}
         </div>
       </div>
 
-      {/* mood card */}
-      <div className="absolute top-[55%] left-[12%] w-60 rounded-2xl bg-white/90 p-4 shadow-[0_20px_50px_-25px_rgba(20,50,30,0.6)] backdrop-blur">
-        <p className="text-xs text-[#6b736c]">{t.moodTitle}</p>
+      {/* mood card, with the week as a soft curve */}
+      <div className={`${glassCard} absolute top-[54%] left-[11%] w-[17rem] p-4 [@media(max-height:780px)]:hidden`}>
+        <div className="flex items-baseline justify-between gap-2">
+          <p className="text-xs text-[#5d655e]">{t.moodTitle}</p>
+          <p className="truncate text-xs text-[#3f6b45]">↑ {t.moodLine}</p>
+        </div>
         <p className="text-3xl tracking-tight text-[#1d221e]">68%</p>
-        <p className="text-xs text-[#6b736c]">{t.moodLine}</p>
-        <div className="mt-2 flex h-5 gap-px overflow-hidden rounded-md">
-          {["#e2e9de", "#d3dfcd", "#c4d4bc", "#b3c8a9", "#5b8453", "#b3c8a9", "#d3dfcd"].map((bg, i) => (
-            <span key={i} className="flex-1" style={{ background: bg }} />
+        <svg viewBox={`-6 -6 ${W + 12} ${H + 12}`} className="mt-1 h-16 w-full overflow-visible">
+          <defs>
+            <linearGradient id="showcase-fill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#5b8453" stopOpacity="0.3" />
+              <stop offset="1" stopColor="#5b8453" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <path d={`${line} L${W} ${H} L0 ${H} Z`} fill="url(#showcase-fill)" />
+          <path d={line} fill="none" stroke="#5b8453" strokeWidth="2" />
+          {points.map(([x, y], i) => (
+            <circle key={i} cx={x} cy={y} r="3.5" fill="#ffffff" stroke="#5b8453" strokeWidth="1.5" />
+          ))}
+        </svg>
+        <div className="mt-1 flex justify-between text-[10px] text-[#6b736c]">
+          {t.days.map((d) => (
+            <span key={d}>{d}</span>
           ))}
         </div>
       </div>
