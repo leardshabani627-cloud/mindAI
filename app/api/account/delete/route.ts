@@ -6,5 +6,9 @@ import { serverClient, unauthorized } from "@/lib/supabase/server";
 export async function POST() {
   const { supabase, user } = await serverClient();
   if (!user) return unauthorized();
-  return new Response(null, { status: (await deleteAllData(supabase, user.id)) ? 204 : 500 });
+  const ok = await deleteAllData(supabase, user.id);
+  // The app lock goes too: the PIN, and the "lock is on" flag.
+  await supabase.rpc("clear_app_lock");
+  await supabase.auth.updateUser({ data: { app_lock: false } });
+  return new Response(null, { status: ok ? 204 : 500 });
 }

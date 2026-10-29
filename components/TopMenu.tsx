@@ -6,12 +6,14 @@ import LockIcon from "@/components/LockIcon";
 import LanguageSwitch from "@/components/LanguageSwitch";
 import { useCopy } from "@/lib/i18n";
 import { useIsGuest } from "@/lib/useIsGuest";
+import { lockNow, useAppLock } from "@/lib/useAppLock";
 
 const ACCOUNT_ONLY = ["/journal", "/safety-plan", "/letters", "/insights", "/memory"];
 
 const en = {
   menu: "Menu",
   language: "Language",
+  lockNow: "Lock now",
   links: [
     { href: "/", label: "Home" },
     { href: "/chat", label: "Chat" },
@@ -29,6 +31,7 @@ const COPY = {
   sq: {
     menu: "Menyja",
     language: "Gjuha",
+    lockNow: "Kyçe tani",
     links: [
       { href: "/", label: "Ballina" },
       { href: "/chat", label: "Bisedo" },
@@ -48,6 +51,7 @@ export default function TopMenu({ children, current }: { children?: React.ReactN
   const [open, setOpen] = useState(false);
   const t = useCopy(COPY);
   const guest = useIsGuest();
+  const lock = useAppLock();
 
   return (
     <div className="relative">
@@ -76,6 +80,15 @@ export default function TopMenu({ children, current }: { children?: React.ReactN
                 </Link>
               ))}
           </div>
+          {lock?.enabled && (
+            <button
+              onClick={lockNow}
+              className="mt-1 flex w-full items-center justify-between rounded-xl border-t border-[var(--line)] px-3 py-2 text-left hover:bg-[var(--accent-soft)]"
+            >
+              {t.lockNow}
+              <LockIcon size={14} className="text-[var(--muted)]" />
+            </button>
+          )}
           {/* Changing language keeps the menu open, so you can see it switch. */}
           <div className="mt-1 flex items-center justify-between border-t border-[var(--line)] px-3 pt-2 pb-1">
             <span className="text-sm text-[var(--muted)]">{t.language}</span>

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Manrope } from "next/font/google";
 import Scenery from "@/components/Scenery";
+import Watchers from "@/components/Watchers";
 import { LanguageProvider } from "@/lib/i18n";
 import { getLang } from "@/lib/lang.server";
 import "./globals.css";
@@ -24,7 +25,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang={lang}>
       <body className={`${manrope.className} antialiased`}>
         <Scenery />
-        <LanguageProvider initial={lang}>{children}</LanguageProvider>
+        <LanguageProvider initial={lang}>
+          {children}
+          <Watchers />
+        </LanguageProvider>
       </body>
     </html>
   );

@@ -13,6 +13,8 @@ export type Settings = {
   safety_plan: SafetyPlan;
   display_name: string | null; // what Mind calls you
   onboarded_at: string | null; // when the welcome steps were finished
+  reminder_enabled: boolean; // a daily "how are you today?" nudge
+  reminder_time: string; // "HH:MM", in the person's own time
 };
 
 const MAX_ITEMS = 10;
@@ -24,12 +26,14 @@ export const emptySettings: Settings = {
   safety_plan: {},
   display_name: null,
   onboarded_at: null,
+  reminder_enabled: false,
+  reminder_time: "20:00",
 };
 
 export async function getSettings(supabase: SupabaseClient): Promise<Settings> {
   const { data, error } = await supabase
     .from("user_settings")
-    .select("emergency_contacts, crisis_resources, disclaimer_accepted_at, safety_plan, display_name, onboarded_at")
+    .select("emergency_contacts, crisis_resources, disclaimer_accepted_at, safety_plan, display_name, onboarded_at, reminder_enabled, reminder_time")
     .maybeSingle();
   if (error) console.error("getSettings failed:", error.message);
   return data ?? emptySettings;
@@ -63,4 +67,9 @@ export function cleanName(value: unknown): string | null | undefined {
   if (typeof value !== "string") return undefined;
   const name = value.trim().replace(/\s+/g, " ").slice(0, 40);
   return name || null;
+}
+
+/** "HH:MM" on a 24-hour clock, or null. */
+export function cleanTime(value: unknown): string | null {
+  return typeof value === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(value) ? value : null;
 }
