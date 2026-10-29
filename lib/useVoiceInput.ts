@@ -20,22 +20,36 @@ const COPY = {
 export type MicState = "idle" | "recording" | "transcribing";
 
 const BARS = 40;
+const SPEECH_LEVEL = 0.12; // louder than this counts as talking
+const SPEECH_TICKS = 4; // ...for about a third of a second, so a click or a breath doesn't count
+const PAUSE_MS = 1400; // in live talk, this much quiet after talking ends the turn
+const QUIET_LIMIT_MS = 45_000; // in live talk, listening this long without a word starts over
 
 /** Record from the microphone, show live levels, then turn the recording into text
- *  through /api/transcribe. `onText` receives the transcript. */
-export function useVoiceInput(onText: (text: string) => void) {
+ *  through /api/transcribe. `onText` receives the transcript.
+ *  When `autoStop()` is true (live talk), recording ends by itself once you pause. */
+export function useVoiceInput(onText: (text: string) => void, { autoStop = () => false }: { autoStop?: () => boolean } = {}) {
   const t = useCopy(COPY);
   const [state, setState] = useState<MicState>("idle");
   const [error, setError] = useState("");
   const [seconds, setSeconds] = useState(0);
   const [levels, setLevels] = useState<number[]>([]);
+  const [micBlocked, setMicBlocked] = useState(false);
   const recorder = useRef<MediaRecorder | null>(null);
+  const stateRef = useRef<MicState>("idle");
+  const autoStopRef = useRef(autoStop);
   const discard = useRef(false);
   const onTextRef = useRef(onText);
 
   useEffect(() => {
     onTextRef.current = onText;
+    autoStopRef.current = autoStop;
   });
+
+  function changeState(next: MicState) {
+    stateRef.current = next;
+    setState(next);
+  }
 
   // Stop the microphone if the page is left mid-recording.
   useEffect(
@@ -47,14 +61,19 @@ export function useVoiceInput(onText: (text: string) => void) {
   );
 
   async function start() {
+    if (stateRef.current !== "idle") return;
+    changeState("recording"); // claimed now, so a second call can't open the mic twice
     setError("");
     let stream: MediaStream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch {
       setError(t.noMic);
+      setMicBlocked(true);
+      changeState("idle");
       return;
     }
+    setMicBlocked(false);
 
     // Live loudness, for the waveform.
     const audio = new AudioContext();
@@ -64,6 +83,10 @@ export function useVoiceInput(onText: (text: string) => void) {
     const samples = new Uint8Array(analyser.fftSize);
     let frame = 0;
     let lastTick = 0;
+    let heardSpeech = false;
+    let loudTicks = 0;
+    let lastLoud = performance.now();
+    const listenedFrom = performance.now();
     const tick = (now: number) => {
       if (now - lastTick > 70) {
         lastTick = now;
@@ -72,6 +95,20 @@ export function useVoiceInput(onText: (text: string) => void) {
         for (const s of samples) sum += ((s - 128) / 128) ** 2;
         const level = Math.min(1, Math.sqrt(sum / samples.length) * 5);
         setLevels((prev) => [...prev.slice(-(BARS - 1)), level]);
+
+        // Live talk: a pause after speaking ends the turn, like in a real conversation.
+        if (level > SPEECH_LEVEL) {
+          loudTicks += 1;
+          lastLoud = now;
+          if (loudTicks >= SPEECH_TICKS) heardSpeech = true;
+        }
+        if (autoStopRef.current() && rec.state === "recording") {
+          if (heardSpeech && now - lastLoud > PAUSE_MS) rec.stop();
+          else if (!heardSpeech && now - listenedFrom > QUIET_LIMIT_MS) {
+            discard.current = true;
+            rec.stop();
+          }
+        }
       }
       frame = requestAnimationFrame(tick);
     };
@@ -93,9 +130,9 @@ export function useVoiceInput(onText: (text: string) => void) {
       stream.getTracks().forEach((t) => t.stop()); // turns the microphone light off
       setLevels([]);
       setSeconds(0);
-      if (discard.current) return setState("idle");
+      if (discard.current) return changeState("idle");
 
-      setState("transcribing");
+      changeState("transcribing");
       try {
         const form = new FormData();
         form.append("audio", new Blob(chunks, { type: rec.mimeType }), "voice.webm");
@@ -107,27 +144,26 @@ export function useVoiceInput(onText: (text: string) => void) {
       } catch {
         setError(t.failed);
       } finally {
-        setState("idle");
+        changeState("idle");
       }
     };
 
     rec.start();
-    setState("recording");
   }
 
   function toggle() {
-    if (state === "recording") recorder.current?.stop();
-    else if (state === "idle") start();
+    if (stateRef.current === "recording") recorder.current?.stop();
+    else if (stateRef.current === "idle") start();
   }
 
   /** Stop recording and throw the audio away. */
   function cancel() {
-    if (state !== "recording") return;
+    if (stateRef.current !== "recording") return;
     discard.current = true;
     recorder.current?.stop();
   }
 
-  return { state, error, seconds, levels, toggle, cancel };
+  return { state, error, seconds, levels, micBlocked, toggle, listen: start, cancel };
 }
 
 export const formatSeconds = (s: number) =>
