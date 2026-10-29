@@ -18,7 +18,9 @@ export const IDLE_MINUTES = 20;
 const MAX_TRANSCRIPT_MESSAGES = 200;
 
 export async function saveMessage(supabase: SupabaseClient, sessionId: string, role: "user" | "assistant", content: string) {
-  const { error } = await supabase.from("messages").insert({ session_id: sessionId, role, content });
+  // Postgres refuses the invisible "null" character, which models occasionally emit.
+  const clean = content.replace(/\u0000/g, "");
+  const { error } = await supabase.from("messages").insert({ session_id: sessionId, role, content: clean });
   if (error) console.error("saveMessage failed:", error.message);
 }
 

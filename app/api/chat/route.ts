@@ -13,6 +13,8 @@ type ChatMessage = { role: "user" | "assistant"; content: string };
 const MAX_MESSAGES = 40;
 const MAX_CHARS = 4000;
 const SUMMARIES_IN_PROMPT = 5;
+// Control characters and stray special symbols the model occasionally emits; never meant to be shown.
+const HIDDEN_CHARS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\uE000-\uF8FF\uFFFD]/g;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function isValid(messages: unknown): messages is ChatMessage[] {
@@ -133,7 +135,7 @@ export async function POST(req: Request) {
           const data = line.slice(5).trim();
           if (!data || data === "[DONE]") continue;
           try {
-            const text = JSON.parse(data).choices?.[0]?.delta?.content;
+            const text = JSON.parse(data).choices?.[0]?.delta?.content?.replace(HIDDEN_CHARS, "");
             if (text) {
               reply += text;
               controller.enqueue(encoder.encode(text));
