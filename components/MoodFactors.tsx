@@ -33,7 +33,7 @@ const MIN_DAYS = 2; // a factor needs at least this many check-ins before we say
 
 // For each thing you tagged, compare your mood on those days with your usual mood.
 // Simple averages over your own check-ins, shown gently: patterns, not proof.
-export default function MoodFactors({ entries }: { entries: Entry[] }) {
+export default function MoodFactors({ entries, className = "mt-6 rounded-2xl glass px-4 py-4" }: { entries: Entry[]; className?: string }) {
   const t = useCopy(COPY);
   const { lang } = useLang();
   const usual = entries.reduce((s, e) => s + e.mood, 0) / (entries.length || 1);
@@ -49,9 +49,10 @@ export default function MoodFactors({ entries }: { entries: Entry[] }) {
     .sort((a, b) => a.diff - b.diff);
 
   return (
-    <section className="mt-6 rounded-2xl glass px-4 py-4">
+    <section className={className}>
       <h2 className="text-lg tracking-tight">{t.title}</h2>
-      <p className="mb-3 text-sm text-[var(--muted)]">{t.compared(usual.toFixed(1))}</p>
+      {/* No average to compare with before the first check-in. */}
+      {entries.length > 0 ? <p className="mb-3 text-sm text-[var(--muted)]">{t.compared(usual.toFixed(1))}</p> : <div className="mb-3" />}
 
       {factors.length === 0 ? (
         <p className="text-base text-[var(--muted)]">
