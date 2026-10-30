@@ -5,6 +5,7 @@ import PinPad from "@/components/PinPad";
 import Wordmark from "@/components/Wordmark";
 import LanguageSwitch from "@/components/LanguageSwitch";
 import { useCopy } from "@/lib/i18n";
+import { safePath } from "@/lib/safePath";
 import { browserClient } from "@/lib/supabase/browser";
 
 const en = {
@@ -45,8 +46,7 @@ export default function LockPage() {
     }).catch(() => null);
     const result = res ? (await res.json().catch(() => ({}))).result : "error";
     if (result === "ok") {
-      const next = new URLSearchParams(location.search).get("next") ?? "/";
-      location.replace(next.startsWith("/") && !next.startsWith("//") ? next : "/");
+      location.replace(safePath(new URLSearchParams(location.search).get("next")));
       return;
     }
     const text = result === "wrong" ? t.wrong : result === "wait" ? t.wait : t.error;

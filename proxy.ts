@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { UNLOCK_COOKIE, isUnlocked, justSignedIn, lockConfigured, lockSettings, unlockCookieOptions, unlockToken } from "@/lib/appLock";
+import { safePath } from "@/lib/safePath";
 
 // Pages anyone can open. Everything else needs a login.
 const SIGNED_OUT_ONLY = ["/login", "/signup", "/forgot-password"];
@@ -52,8 +53,7 @@ export async function proxy(request: NextRequest) {
 
     if (unlocked) {
       if (path === "/lock") {
-        const next = request.nextUrl.searchParams.get("next") ?? "/";
-        return keepCookies(NextResponse.redirect(new URL(next.startsWith("/") && !next.startsWith("//") ? next : "/", request.url)));
+        return keepCookies(NextResponse.redirect(new URL(safePath(request.nextUrl.searchParams.get("next")), request.url)));
       }
       // Still active: the lock waits another full stretch from now.
       response.cookies.set(UNLOCK_COOKIE, await unlockToken(user.id, lock.minutes), unlockCookieOptions);

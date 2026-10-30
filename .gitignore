@@ -1,6 +1,8 @@
 node_modules
 .next
 .env.local
+# Any other local settings file (e.g. the copy prepared for Vercel)
+.env*.local
 next-env.d.ts
 .claude
 *.tsbuildinfo
