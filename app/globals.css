@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+/* The smallest text in the app is 13px (Tailwind's text-xs is 12px by default). */
+@theme {
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.15rem;
+}
+
+/* Soft sage palette, matched to the design. Every color in the app comes from these tokens. */
+:root {
+  color-scheme: light;
+  --bg: #eef1ee;
+  --fg: #1d221e;
+  --muted: #626a64; /* secondary text: about 5.5:1 on white, above the 4.5:1 accessibility minimum */
+  --card: rgba(255, 255, 255, 0.9);
+  --card-solid: #ffffff;
+  --glass-border: rgba(255, 255, 255, 0.92);
+  --line: rgba(29, 34, 30, 0.07);
+  --accent: #5b8453;
+  --accent-strong: #3f6b45;
+  --on-accent: #ffffff;
+  --accent-soft: #e2e9de;
+  --check: #c3d2bd;
+
+  /* The green voice / chat card: deeper sage at the top-left, lighter toward the bottom-right */
+  --voice-from: #6b8865;
+  --voice-to: #95ab8b;
+
+  --chip-a-bg: #e4ecdc; --chip-a-fg: #66804f;
+  --chip-b-bg: #eef3cb; --chip-b-fg: #7a8834;
+  --chip-c-bg: #e2ecf3; --chip-c-fg: #58788f;
+}
+
+/* Mind is always light and bright, even when the computer or phone is set to dark mode. */
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 1.125rem;
+  line-height: 1.7;
+}
+
+/* Frosted card used across the app */
+.glass {
+  background: var(--card);
+  backdrop-filter: blur(18px) saturate(1.15);
+  -webkit-backdrop-filter: blur(18px) saturate(1.15);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 18px 50px -28px rgba(35, 60, 35, 0.45);
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.animate-float { animation: float 6s ease-in-out infinite; }
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(18px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+.animate-rise { animation: rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+/* A wrong PIN: the dots shake "no". */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-8px); }
+  40%, 80% { transform: translateX(8px); }
+}
+.animate-shake { animation: shake 0.4s ease-in-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-float, .animate-pulse, .animate-rise { animation: none; }
+}
